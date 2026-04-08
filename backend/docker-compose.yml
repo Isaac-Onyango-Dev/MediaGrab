@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  backend:
+    build: 
+      context: ..
+      dockerfile: backend/Dockerfile
+      args:
+        APP_VERSION: ${APP_VERSION:-0.0.0}
+    container_name: mediagrab_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./downloads:/downloads
+    environment:
+      - MEDIAGRAB_OUTPUT_DIR=/downloads
+      - MEDIAGRAB_HOST=0.0.0.0
+      - MEDIAGRAB_PORT=8000

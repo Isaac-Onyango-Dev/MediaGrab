@@ -1,0 +1,267 @@
+name: Build Desktop Apps
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  # ──────────────────────────────────────────────
+  # Windows – produces MediaGrab-Windows.exe
+  # ──────────────────────────────────────────────
+  build-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: desktop
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: desktop/requirements.txt
+
+      - name: Install FFmpeg
+        run: |
+          choco install ffmpeg -y
+          ffmpeg -version
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Create fallback assets folder (if missing)
+        run: if (!(Test-Path assets)) { New-Item -ItemType Directory -Path assets }
+
+      - name: Build with PyInstaller
+        run: |
+          pyinstaller `
+            --noconfirm `
+            --onefile `
+            --windowed `
+            --name "MediaGrab" `
+            --add-data "assets;assets" `
+            --hidden-import "customtkinter" `
+            --hidden-import "yt_dlp" `
+            --hidden-import "PIL" `
+            --hidden-import "requests" `
+            main.py
+
+      - name: Build Server with PyInstaller
+        working-directory: backend
+        run: |
+          pip install -r requirements.txt
+          pyinstaller `
+            --noconfirm `
+            --onefile `
+            --name "MediaGrab-Server-Windows" `
+            --hidden-import "uvicorn.logging" `
+            --hidden-import "uvicorn.loops" `
+            --hidden-import "uvicorn.loops.auto" `
+            --hidden-import "uvicorn.protocols" `
+            --hidden-import "uvicorn.protocols.http" `
+            --hidden-import "uvicorn.protocols.http.auto" `
+            --hidden-import "uvicorn.protocols.websockets" `
+            --hidden-import "uvicorn.protocols.websockets.auto" `
+            --hidden-import "uvicorn.lifespan" `
+            --hidden-import "uvicorn.lifespan.on" `
+            main.py
+
+      - name: Rename artifacts
+        run: |
+          mv dist/MediaGrab.exe dist/MediaGrab-Windows.exe
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: MediaGrab-Windows
+          path: |
+            desktop/dist/MediaGrab-Windows.exe
+            backend/dist/MediaGrab-Server-Windows.exe
+
+      - name: Attach to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            desktop/dist/MediaGrab-Windows.exe
+            backend/dist/MediaGrab-Server-Windows.exe
+
+  # ──────────────────────────────────────────────
+  # macOS – produces MediaGrab-macOS.dmg
+  # ──────────────────────────────────────────────
+  build-macos:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: desktop
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: desktop/requirements.txt
+
+      - name: Install FFmpeg & create-dmg
+        run: brew install ffmpeg create-dmg
+
+      - name: Install Python dependencies
+        run: pip3 install -r requirements.txt
+
+      - name: Create fallback assets folder (if missing)
+        run: mkdir -p assets
+
+      - name: Build .app with PyInstaller
+        run: |
+          pyinstaller \
+            --noconfirm \
+            --onedir \
+            --windowed \
+            --name "MediaGrab" \
+            --add-data "assets:assets" \
+            --hidden-import "customtkinter" \
+            --hidden-import "yt_dlp" \
+            --hidden-import "PIL" \
+            --hidden-import "requests" \
+            --osx-bundle-identifier "com.mediagrab.app" \
+            main.py
+
+      - name: Build Server with PyInstaller
+        working-directory: backend
+        run: |
+          pip3 install -r requirements.txt
+          pyinstaller \
+            --noconfirm \
+            --onefile \
+            --name "MediaGrab-Server-macOS" \
+            --hidden-import "uvicorn.logging" \
+            --hidden-import "uvicorn.loops" \
+            --hidden-import "uvicorn.loops.auto" \
+            --hidden-import "uvicorn.protocols" \
+            --hidden-import "uvicorn.protocols.http" \
+            --hidden-import "uvicorn.protocols.http.auto" \
+            --hidden-import "uvicorn.protocols.websockets" \
+            --hidden-import "uvicorn.protocols.websockets.auto" \
+            --hidden-import "uvicorn.lifespan" \
+            --hidden-import "uvicorn.lifespan.on" \
+            main.py
+
+      - name: Create DMG
+        run: |
+          create-dmg \
+            --volname "MediaGrab" \
+            --window-size 600 400 \
+            --icon-size 100 \
+            --icon "MediaGrab.app" 175 190 \
+            --app-drop-link 425 190 \
+            dist/MediaGrab-macOS.dmg \
+            dist/MediaGrab.app
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: MediaGrab-macOS
+          path: |
+            desktop/dist/MediaGrab-macOS.dmg
+            backend/dist/MediaGrab-Server-macOS
+
+      - name: Attach to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            desktop/dist/MediaGrab-macOS.dmg
+            backend/dist/MediaGrab-Server-macOS
+
+  # ──────────────────────────────────────────────
+  # Linux – produces MediaGrab-Linux (Binary)
+  # ──────────────────────────────────────────────
+  build-linux:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: desktop
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: desktop/requirements.txt
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Create fallback assets folder (if missing)
+        run: mkdir -p assets
+
+      - name: Build with PyInstaller
+        run: |
+          pyinstaller \
+            --noconfirm \
+            --onefile \
+            --name "MediaGrab" \
+            --add-data "assets:assets" \
+            --hidden-import "customtkinter" \
+            --hidden-import "yt_dlp" \
+            --hidden-import "PIL" \
+            --hidden-import "requests" \
+            main.py
+
+      - name: Build Server with PyInstaller
+        working-directory: backend
+        run: |
+          pip install -r requirements.txt
+          pyinstaller \
+            --noconfirm \
+            --onefile \
+            --name "MediaGrab-Server-Linux" \
+            --hidden-import "uvicorn.logging" \
+            --hidden-import "uvicorn.loops" \
+            --hidden-import "uvicorn.loops.auto" \
+            --hidden-import "uvicorn.protocols" \
+            --hidden-import "uvicorn.protocols.http" \
+            --hidden-import "uvicorn.protocols.http.auto" \
+            --hidden-import "uvicorn.protocols.websockets" \
+            --hidden-import "uvicorn.protocols.websockets.auto" \
+            --hidden-import "uvicorn.lifespan" \
+            --hidden-import "uvicorn.lifespan.on" \
+            main.py
+
+      - name: Rename artifacts
+        run: |
+          mv dist/MediaGrab dist/MediaGrab-Linux
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: MediaGrab-Linux
+          path: |
+            desktop/dist/MediaGrab-Linux
+            backend/dist/MediaGrab-Server-Linux
+
+      - name: Attach to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            desktop/dist/MediaGrab-Linux
+            backend/dist/MediaGrab-Server-Linux

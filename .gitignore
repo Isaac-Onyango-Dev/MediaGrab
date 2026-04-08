@@ -1,0 +1,73 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.tox/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+mobile/android/
+mobile/ios/
+.expo/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+mobile/dist/
+
+# IDE
+.qwen/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Env / Temp
+.env
+.venv
+desktop/dist/
+desktop/build/
+desktop/*.spec
+backend/downloads/
+
+# Prevent root-level bloat (keep structure clean)
+/main.py
+/downloader.py
+logs_*/
+*.log
+
+# Prevent redundant documentation at root
+/ARCHITECTURE_BLUEPRINT.md
+/BACKEND_IMPLEMENTATION.md
+/COMPLETE_DOCUMENTATION.md
+/DESKTOP_IMPLEMENTATION.md
+/DEVELOPMENT_SETUP.md
+/DOCUMENTATION_*.md
+/IMPLEMENTATION_ROADMAP.md
+/MOBILE_IMPLEMENTATION.md
+/ORGANIZATION_GUIDE.md
+/PROJECT_*.md
+/REORGANIZATION_SUMMARY.md
+/TECHNOLOGY_STACK.md
+/UPDATE_SUMMARY.md
+/MEDIAGRAB_AI_PROMPT.md

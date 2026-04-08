@@ -1,0 +1,112 @@
+@import "tailwindcss";
+
+:root {
+  --font-sans: "Geist", "Inter", system-ui, sans-serif;
+  --color-brand-950: #030712;
+  --color-brand-900: #07090f;
+  --color-brand-800: #111827;
+  --color-brand-violet: #4c1d95;
+  --color-brand-electric: #3b82f6;
+  --color-brand-vivid: #8b5cf6;
+
+  --bg: #0d0d0d;
+  --surface: #141414;
+  --card: #1a1a1a;
+  --border: #1e293b;
+  --border-2: #2a2a2a;
+  --text: #f1f5f9;
+  --text-muted: #64748b;
+  --text-dim: #334155;
+  --blue: #3b82f6;
+  --blue-dark: #1d4ed8;
+  --green: #22c55e;
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+
+@keyframes drift {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(5%, 10%) scale(1.1); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+
+@layer base {
+  body {
+    background-color: var(--color-brand-950);
+    color: #f1f5f9;
+    margin: 0;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background-color: rgba(59, 130, 246, 0.3);
+  }
+
+  a {
+    color: var(--blue);
+    text-decoration: none;
+  }
+
+  a:hover {
+    text-decoration: underline;
+  }
+
+  section {
+    padding: 72px 24px;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 3px;
+}
+
+@layer utilities {
+  .glass-card {
+    background-color: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(64px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  }
+
+  .glass-card-hover {
+    transition: all 500ms;
+    cursor: pointer;
+  }
+
+  .glass-card-hover:hover {
+    background-color: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .text-glow {
+    text-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+  }
+
+  .bg-gradient-premium {
+    background: linear-gradient(to bottom, #030712 0%, #4c1d95 100%);
+  }
+
+  .blur-orb {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(120px);
+    opacity: 0.4;
+    pointer-events: none;
+  }
+}

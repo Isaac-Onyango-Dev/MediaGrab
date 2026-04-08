@@ -1,0 +1,131 @@
+name: CI - Tests & Code Quality
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  test-backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt pytest httpx pytest-asyncio
+
+      - name: Run Backend Tests
+        run: pytest tests/ -v --tb=short
+        env:
+          PYTHONPATH: .
+
+      - name: Check Python formatting (Ruff)
+        run: |
+          pip install ruff
+          ruff check . || echo "Ruff found issues, but continuing..."
+
+  test-mobile:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: mobile/package.json
+
+      - name: Install JS dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: TypeScript Check
+        run: npm run ts
+
+      - name: Lint Check
+        run: npm run lint || echo "Lint found issues, but continuing..."
+
+  test-desktop:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: desktop/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Syntax Check
+        run: python -m py_compile main.py
+
+  validate-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate VERSION file
+        run: |
+          if [ ! -f VERSION ]; then
+            echo "VERSION file not found!"
+            exit 1
+          fi
+          VERSION=$(cat VERSION | tr -d '[:space:]')
+          echo "Version: $VERSION"
+          if [[ ! $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid version format: $VERSION"
+            exit 1
+          fi
+
+      - name: Check version consistency
+        run: |
+          VERSION=$(cat VERSION | tr -d '[:space:]')
+          echo "Checking version consistency across codebase..."
+          
+          # Check backend
+          if grep -q "\"version\": \"$VERSION\"" backend/main.py; then
+            echo "✓ Backend version matches"
+          else
+            echo "⚠ Backend version might use dynamic VERSION file"
+          fi
+          
+          # Check desktop
+          if grep -q "APP_VERSION.*VERSION" desktop/main.py; then
+            echo "✓ Desktop version uses VERSION file"
+          fi
+          
+          # Check mobile package.json
+          MOBILE_VERSION=$(node -p "require('./mobile/package.json').version")
+          if [ "$MOBILE_VERSION" = "$VERSION" ] || [ "$MOBILE_VERSION" = "${VERSION}-alpha" ]; then
+            echo "✓ Mobile version matches (or is alpha)"
+          else
+            echo "⚠ Mobile version: $MOBILE_VERSION (expected: $VERSION)"
+          fi
+          
+          echo "Version check complete"

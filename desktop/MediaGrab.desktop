@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=MediaGrab
+GenericName=Video Downloader
+Comment=Universal video and audio downloader powered by yt-dlp
+Exec=MediaGrab
+Icon=mediagrab
+Terminal=false
+Type=Application
+Categories=Network;AudioVideo;
+Keywords=video;download;youtube;audio;

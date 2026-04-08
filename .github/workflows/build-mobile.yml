@@ -1,0 +1,129 @@
+name: Build Android APK
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: "APK type"
+        required: true
+        default: "release"
+        type: choice
+        options: [debug, release]
+
+permissions:
+  contents: write
+
+# ─────────────────────────────────────────────────────────────────────
+# Android only — completely free, no EAS, no Apple account needed.
+# iOS requires a $99/yr Apple Developer account and is NOT included.
+# ─────────────────────────────────────────────────────────────────────
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      # 1 — Source
+      - uses: actions/checkout@v4
+
+      # 2 — Node 20
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: mobile/package.json
+
+      # 3 — Java 17 (required by Android Gradle)
+      - uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      # 4 — Android SDK
+      - uses: android-actions/setup-android@v3
+
+      # 5 — Node modules
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      # 5.5 — Fix react-native-zeroconf deprecated compile method
+      - name: Fix react-native-zeroconf Gradle
+        run: |
+          ZEROCONF_GRADLE="node_modules/react-native-zeroconf/android/build.gradle"
+          if [ -f "$ZEROCONF_GRADLE" ]; then
+            sed -i 's/compile '"'"'/implementation '"'"'/g' "$ZEROCONF_GRADLE"
+            sed -i "s/compileSdkVersion.*/compileSdkVersion 34/" "$ZEROCONF_GRADLE"
+            sed -i "s/minSdkVersion.*/minSdkVersion 21/" "$ZEROCONF_GRADLE"
+            sed -i "s/targetSdkVersion.*/targetSdkVersion 34/" "$ZEROCONF_GRADLE"
+            sed -i '/buildToolsVersion/d' "$ZEROCONF_GRADLE"
+            sed -i "s/classpath.*com.android.tools.build:gradle.*/classpath 'com.android.tools.build:gradle:8.0.0'/" "$ZEROCONF_GRADLE"
+            sed -i 's/jcenter()/google()/g' "$ZEROCONF_GRADLE"
+            grep -q 'mavenCentral()' "$ZEROCONF_GRADLE" || sed -i '/google()/a\        mavenCentral()' "$ZEROCONF_GRADLE"
+          fi
+
+      # 6 — Expo CLI (local, no account needed)
+      - name: Install Expo CLI
+        run: npm install -g @expo/cli
+
+      # 6.5 - Guarantee the required assets exist
+      - name: Create Temporary Assets
+        run: |
+          mkdir -p assets
+          touch assets/icon.png
+          touch assets/adaptive-icon.png
+          touch assets/splash.png
+
+      # 7 — Generate native Android project from Expo config
+      - name: Expo Prebuild (generate android/ folder)
+        run: npx expo prebuild --platform android --clean --no-install
+
+      # 8 — Cache Gradle
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('mobile/android/**/*.gradle*', 'mobile/android/gradle-wrapper.properties') }}
+          restore-keys: gradle-
+
+      # 9a — Debug APK
+      - name: Build Debug APK
+        if: ${{ github.event.inputs.build_type == 'debug' }}
+        run: cd android && ./gradlew assembleDebug --no-daemon
+
+      # 9b — Release APK (Standalone)
+      # Automatically bundles JS. Uses Expo's default debug.keystore if no custom secrets are provided.
+      - name: Build Release APK
+        if: ${{ github.event.inputs.build_type == 'release' || github.event.inputs.build_type == '' }}
+        run: cd android && ./gradlew assembleRelease --no-daemon
+
+      # 10 — Rename output
+      - name: Rename APK
+        run: |
+          mkdir -p dist
+          TYPE=${{ github.event.inputs.build_type || 'release' }}
+          if [ "$TYPE" = "release" ]; then
+            cp android/app/build/outputs/apk/release/app-release.apk dist/MediaGrab-Android.apk
+          else
+            cp android/app/build/outputs/apk/debug/app-debug.apk dist/MediaGrab-Android.apk
+          fi
+          echo "APK size: $(du -sh dist/MediaGrab-Android.apk)"
+
+      # 11 — Upload artifact (available in Actions tab, always)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MediaGrab-Android-APK
+          path: mobile/dist/MediaGrab-Android.apk
+          retention-days: 30
+
+      # 12 — Attach to GitHub Release (only on tag push)
+      - name: Attach to Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: mobile/dist/MediaGrab-Android.apk
