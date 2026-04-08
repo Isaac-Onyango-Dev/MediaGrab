@@ -19,7 +19,7 @@
 #define StagingDir "dist\installer_staging"
 
 [Setup]
-AppId={{#MyAppId}
+AppId={{{#MyAppId}}}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppVerName={#MyAppName} {#MyAppVersion}
@@ -105,8 +105,8 @@ begin
   Result := True;
 
   // Check if a previous version is already installed
-  if RegQueryStringValue(HKLM, 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{{#MyAppId}_is1', 'DisplayVersion', PrevVersion) or
-     RegQueryStringValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{{#MyAppId}_is1', 'DisplayVersion', PrevVersion) then
+  if RegQueryStringValue(HKLM, 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{{{#MyAppId}}}_is1', 'DisplayVersion', PrevVersion) or
+     RegQueryStringValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{{{#MyAppId}}}_is1', 'DisplayVersion', PrevVersion) then
   begin
     if MsgBox('A previous version of {#MyAppName} is already installed (v' + PrevVersion + '). Do you want to uninstall it first?',
               mbConfirmation, MB_YESNO) = IDYES then

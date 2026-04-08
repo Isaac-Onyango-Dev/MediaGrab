@@ -87,8 +87,8 @@ assemble_appdir() {
     # Icon (use PNG from assets)
     local icon_src="$ASSETS_DIR/icon.png"
     if [ -f "$icon_src" ]; then
-        cp "$icon_src" "$APPDIR/mediagrab.png"
-        cp "$icon_src" "$APPDIR/usr/share/icons/hicolor/256x256/apps/mediagrab.png"
+        cp "$icon_src" "$APPDIR/MediaGrab.png"
+        cp "$icon_src" "$APPDIR/usr/share/icons/hicolor/256x256/apps/MediaGrab.png"
         info "Icon installed from $icon_src"
     else
         warn "No icon.png found in assets/ — desktop entry will have no icon"
@@ -190,7 +190,7 @@ To add MediaGrab to your application menu:
 
   b) Copy the desktop entry and icon:
        sudo cp ${APP_NAME}.desktop /usr/share/applications/
-       sudo cp mediagrab.png /usr/share/icons/hicolor/256x256/apps/mediagrab.png
+       sudo cp MediaGrab.png /usr/share/icons/hicolor/256x256/apps/MediaGrab.png
 
   c) Refresh the desktop database:
        update-desktop-database ~/.local/share/applications/ 2>/dev/null || true
@@ -210,8 +210,8 @@ EOF
     if [ -f "$DESKTOP_DIR/MediaGrab.desktop" ]; then
         cp "$DESKTOP_DIR/MediaGrab.desktop" "$staging/$APP_NAME.desktop"
     fi
-    if [ -f "$APPDIR/mediagrab.png" ]; then
-        cp "$APPDIR/mediagrab.png" "$staging/mediagrab.png"
+    if [ -f "$APPDIR/MediaGrab.png" ]; then
+        cp "$APPDIR/MediaGrab.png" "$staging/MediaGrab.png"
     fi
 
     # Create tarball
