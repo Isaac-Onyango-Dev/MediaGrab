@@ -61,7 +61,7 @@ jobs:
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
         with:
           path: desktop/installer_windows.iss
-          options: /O+
+          options: /O+ /DMyAppVersion=${{ steps.version.outputs.version }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

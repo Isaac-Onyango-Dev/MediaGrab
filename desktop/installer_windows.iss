@@ -11,7 +11,9 @@
 ; ─────────────────────────────────────────────
 
 #define MyAppName "MediaGrab"
-#define MyAppVersion "1.0.6"
+#ifndef MyAppVersion
+#define MyAppVersion "1.0.0"
+#endif
 #define MyAppPublisher "Isaac Onyango"
 #define MyAppURL "https://github.com/Isaac-Onyango-Dev/MediaGrab"
 #define MyAppExeName "MediaGrab.exe"

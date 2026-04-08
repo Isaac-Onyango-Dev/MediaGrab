@@ -15,8 +15,18 @@ if !ERRORLEVEL! NEQ 0 (
 echo.
 
 echo [2/5] Building PyInstaller executable...
-pyinstaller --noconfirm --onefile --windowed --name "MediaGrab" --add-data "assets;assets" --add-data "../VERSION;." --add-data "../shared;shared" --collect-all "customtkinter" --collect-all "yt_dlp" --collect-all "PIL" --hidden-import "requests" --hidden-import "psutil" main.py
-if !ERRORLEVEL! NEQ 0 (
+:: Temporary copy of VERSION and shared to work around PyInstaller relative path issues on Windows
+if exist "..\VERSION" copy "..\VERSION" "VERSION"
+if exist "..\shared" xcopy /E /I /Y "..\shared" "shared"
+
+pyinstaller --noconfirm --onefile --windowed --name "MediaGrab" --add-data "assets;assets" --add-data "VERSION;." --add-data "shared;shared" --collect-all "customtkinter" --collect-all "yt_dlp" --collect-all "PIL" --hidden-import "requests" --hidden-import "psutil" main.py
+set "PY_ERRORLEVEL=!ERRORLEVEL!"
+
+:: Cleanup temporary copies
+if exist "VERSION" del "VERSION"
+if exist "shared" rmdir /s /q "shared"
+
+if !PY_ERRORLEVEL! NEQ 0 (
     echo ERROR: PyInstaller build failed.
     exit /b 1
 )
