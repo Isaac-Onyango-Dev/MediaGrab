@@ -56,7 +56,6 @@ jobs:
             VERSION="1.0.0"
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-        shell: bash
 
       - name: Compile Inno Setup Installer
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
