@@ -1,0 +1,20 @@
+﻿2026-04-08T17:04:29.2910413Z ##[group]Run actions/setup-python@v5
+2026-04-08T17:04:29.2910747Z with:
+2026-04-08T17:04:29.2910914Z   python-version: 3.11
+2026-04-08T17:04:29.2911097Z   cache: pip
+2026-04-08T17:04:29.2911313Z   cache-dependency-path: desktop/requirements.txt
+2026-04-08T17:04:29.2911587Z   check-latest: false
+2026-04-08T17:04:29.2911931Z   token: ***
+2026-04-08T17:04:29.2912094Z   update-environment: true
+2026-04-08T17:04:29.2912308Z   allow-prereleases: false
+2026-04-08T17:04:29.2912632Z   freethreaded: false
+2026-04-08T17:04:29.2912910Z ##[endgroup]
+2026-04-08T17:04:29.5244243Z ##[group]Installed versions
+2026-04-08T17:04:29.5481639Z Successfully set up CPython (3.11.9)
+2026-04-08T17:04:29.5482472Z ##[endgroup]
+2026-04-08T17:04:32.7693936Z Cache hit for: setup-python-Windows-x64-python-3.11.9-pip-8493191993e9c2dde7a0dcd7fc5482d798d901571642beb6d60d258ab2103078
+2026-04-08T17:04:33.3071846Z Received 30161391 of 30161391 (100.0%), 67.0 MBs/sec
+2026-04-08T17:04:33.3076495Z Cache Size: ~29 MB (30161391 B)
+2026-04-08T17:04:33.3119419Z [command]"C:\Program Files\Git\usr\bin\tar.exe" -xf D:/a/_temp/253bc3ae-314a-4d31-ba15-e15d0d6aec86/cache.tzst -P -C D:/a/MediaGrab/MediaGrab --force-local --use-compress-program "zstd -d"
+2026-04-08T17:04:34.2446338Z Cache restored successfully
+2026-04-08T17:04:34.2481474Z Cache restored from key: setup-python-Windows-x64-python-3.11.9-pip-8493191993e9c2dde7a0dcd7fc5482d798d901571642beb6d60d258ab2103078

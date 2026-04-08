@@ -1,0 +1,12 @@
+﻿2026-04-08T17:04:27.2151550Z ##[group]Run bash ./build_mac.sh
+2026-04-08T17:04:27.2151790Z [36;1mbash ./build_mac.sh[0m
+2026-04-08T17:04:27.2191860Z shell: /bin/bash -e {0}
+2026-04-08T17:04:27.2192120Z env:
+2026-04-08T17:04:27.2192350Z   pythonLocation: /Users/runner/hostedtoolcache/Python/3.11.9/arm64
+2026-04-08T17:04:27.2192850Z   PKG_CONFIG_PATH: /Users/runner/hostedtoolcache/Python/3.11.9/arm64/lib/pkgconfig
+2026-04-08T17:04:27.2193310Z   Python_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.11.9/arm64
+2026-04-08T17:04:27.2193700Z   Python2_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.11.9/arm64
+2026-04-08T17:04:27.2194040Z   Python3_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.11.9/arm64
+2026-04-08T17:04:27.2194300Z ##[endgroup]
+2026-04-08T17:04:27.2661020Z cat: /Users/runner/work/MediaGrab/MediaGrab/VERSION: No such file or directory
+2026-04-08T17:04:27.2683880Z ##[error]Process completed with exit code 1.

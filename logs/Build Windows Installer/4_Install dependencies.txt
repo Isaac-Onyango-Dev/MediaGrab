@@ -1,0 +1,62 @@
+﻿2026-04-08T17:04:34.2793477Z ##[group]Run pip install -r desktop/requirements.txt
+2026-04-08T17:04:34.2794058Z [36;1mpip install -r desktop/requirements.txt[0m
+2026-04-08T17:04:34.3728628Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-04-08T17:04:34.3729151Z env:
+2026-04-08T17:04:34.3729541Z   pythonLocation: C:\hostedtoolcache\windows\Python\3.11.9\x64
+2026-04-08T17:04:34.3730231Z   PKG_CONFIG_PATH: C:\hostedtoolcache\windows\Python\3.11.9\x64/lib/pkgconfig
+2026-04-08T17:04:34.3730904Z   Python_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.11.9\x64
+2026-04-08T17:04:34.3731511Z   Python2_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.11.9\x64
+2026-04-08T17:04:34.3732103Z   Python3_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.11.9\x64
+2026-04-08T17:04:34.3732552Z ##[endgroup]
+2026-04-08T17:04:42.5194617Z Collecting customtkinter==5.2.2 (from -r desktop/requirements.txt (line 4))
+2026-04-08T17:04:42.5222362Z   Using cached customtkinter-5.2.2-py3-none-any.whl.metadata (677 bytes)
+2026-04-08T17:04:42.7790685Z Collecting yt-dlp (from -r desktop/requirements.txt (line 5))
+2026-04-08T17:04:42.7823093Z   Using cached yt_dlp-2026.3.17-py3-none-any.whl.metadata (182 kB)
+2026-04-08T17:04:42.8471111Z Collecting pyinstaller==6.6.0 (from -r desktop/requirements.txt (line 6))
+2026-04-08T17:04:42.8501432Z   Using cached pyinstaller-6.6.0-py3-none-win_amd64.whl.metadata (8.3 kB)
+2026-04-08T17:04:43.0238719Z Collecting Pillow>=10.3.0 (from -r desktop/requirements.txt (line 7))
+2026-04-08T17:04:43.0266514Z   Using cached pillow-12.2.0-cp311-cp311-win_amd64.whl.metadata (9.0 kB)
+2026-04-08T17:04:43.0618700Z Collecting requests>=2.31.0 (from -r desktop/requirements.txt (line 8))
+2026-04-08T17:04:43.0647404Z   Using cached requests-2.33.1-py3-none-any.whl.metadata (4.8 kB)
+2026-04-08T17:04:43.1418430Z Collecting psutil>=5.9.8 (from -r desktop/requirements.txt (line 9))
+2026-04-08T17:04:43.1446125Z   Using cached psutil-7.2.2-cp37-abi3-win_amd64.whl.metadata (22 kB)
+2026-04-08T17:04:43.1853153Z Collecting darkdetect (from customtkinter==5.2.2->-r desktop/requirements.txt (line 4))
+2026-04-08T17:04:43.1879803Z   Using cached darkdetect-0.8.0-py3-none-any.whl.metadata (3.6 kB)
+2026-04-08T17:04:43.2159032Z Collecting packaging (from customtkinter==5.2.2->-r desktop/requirements.txt (line 4))
+2026-04-08T17:04:43.2185468Z   Using cached packaging-26.0-py3-none-any.whl.metadata (3.3 kB)
+2026-04-08T17:04:43.2231543Z Requirement already satisfied: setuptools>=42.0.0 in C:\hostedtoolcache\windows\Python\3.11.9\x64\Lib\site-packages (from pyinstaller==6.6.0->-r desktop/requirements.txt (line 6)) (65.5.0)
+2026-04-08T17:04:43.2417767Z Collecting altgraph (from pyinstaller==6.6.0->-r desktop/requirements.txt (line 6))
+2026-04-08T17:04:43.2447222Z   Using cached altgraph-0.17.5-py2.py3-none-any.whl.metadata (7.5 kB)
+2026-04-08T17:04:43.2768861Z Collecting pyinstaller-hooks-contrib>=2024.3 (from pyinstaller==6.6.0->-r desktop/requirements.txt (line 6))
+2026-04-08T17:04:43.2816885Z   Using cached pyinstaller_hooks_contrib-2026.4-py3-none-any.whl.metadata (16 kB)
+2026-04-08T17:04:43.3080284Z Collecting pefile>=2022.5.30 (from pyinstaller==6.6.0->-r desktop/requirements.txt (line 6))
+2026-04-08T17:04:43.3107896Z   Using cached pefile-2024.8.26-py3-none-any.whl.metadata (1.4 kB)
+2026-04-08T17:04:43.3315544Z Collecting pywin32-ctypes>=0.2.1 (from pyinstaller==6.6.0->-r desktop/requirements.txt (line 6))
+2026-04-08T17:04:43.3342563Z   Using cached pywin32_ctypes-0.2.3-py3-none-any.whl.metadata (3.9 kB)
+2026-04-08T17:04:43.4387175Z Collecting charset_normalizer<4,>=2 (from requests>=2.31.0->-r desktop/requirements.txt (line 8))
+2026-04-08T17:04:43.4417132Z   Using cached charset_normalizer-3.4.7-cp311-cp311-win_amd64.whl.metadata (41 kB)
+2026-04-08T17:04:43.4808567Z Collecting idna<4,>=2.5 (from requests>=2.31.0->-r desktop/requirements.txt (line 8))
+2026-04-08T17:04:43.4834688Z   Using cached idna-3.11-py3-none-any.whl.metadata (8.4 kB)
+2026-04-08T17:04:43.5432654Z Collecting urllib3<3,>=1.26 (from requests>=2.31.0->-r desktop/requirements.txt (line 8))
+2026-04-08T17:04:43.5463057Z   Using cached urllib3-2.6.3-py3-none-any.whl.metadata (6.9 kB)
+2026-04-08T17:04:43.5765491Z Collecting certifi>=2023.5.7 (from requests>=2.31.0->-r desktop/requirements.txt (line 8))
+2026-04-08T17:04:43.5791375Z   Using cached certifi-2026.2.25-py3-none-any.whl.metadata (2.5 kB)
+2026-04-08T17:04:43.6015646Z Using cached customtkinter-5.2.2-py3-none-any.whl (296 kB)
+2026-04-08T17:04:43.6060079Z Using cached pyinstaller-6.6.0-py3-none-win_amd64.whl (1.3 MB)
+2026-04-08T17:04:43.6134595Z Using cached yt_dlp-2026.3.17-py3-none-any.whl (3.3 MB)
+2026-04-08T17:04:43.6174141Z Using cached pillow-12.2.0-cp311-cp311-win_amd64.whl (7.1 MB)
+2026-04-08T17:04:43.6235224Z Using cached requests-2.33.1-py3-none-any.whl (64 kB)
+2026-04-08T17:04:43.6256858Z Using cached charset_normalizer-3.4.7-cp311-cp311-win_amd64.whl (159 kB)
+2026-04-08T17:04:43.6281017Z Using cached idna-3.11-py3-none-any.whl (71 kB)
+2026-04-08T17:04:43.6302154Z Using cached urllib3-2.6.3-py3-none-any.whl (131 kB)
+2026-04-08T17:04:43.6323633Z Using cached psutil-7.2.2-cp37-abi3-win_amd64.whl (137 kB)
+2026-04-08T17:04:43.6345571Z Using cached certifi-2026.2.25-py3-none-any.whl (153 kB)
+2026-04-08T17:04:43.6370286Z Using cached packaging-26.0-py3-none-any.whl (74 kB)
+2026-04-08T17:04:43.6391559Z Using cached pefile-2024.8.26-py3-none-any.whl (74 kB)
+2026-04-08T17:04:43.6412262Z Using cached pyinstaller_hooks_contrib-2026.4-py3-none-any.whl (455 kB)
+2026-04-08T17:04:43.6435531Z Using cached pywin32_ctypes-0.2.3-py3-none-any.whl (30 kB)
+2026-04-08T17:04:43.6478454Z Using cached altgraph-0.17.5-py2.py3-none-any.whl (21 kB)
+2026-04-08T17:04:43.6499311Z Using cached darkdetect-0.8.0-py3-none-any.whl (9.0 kB)
+2026-04-08T17:04:43.7742324Z Installing collected packages: altgraph, yt-dlp, urllib3, pywin32-ctypes, psutil, Pillow, pefile, packaging, idna, darkdetect, charset_normalizer, certifi, requests, pyinstaller-hooks-contrib, customtkinter, pyinstaller
+2026-04-08T17:04:56.2572053Z 
+2026-04-08T17:04:56.2591915Z Successfully installed Pillow-12.2.0 altgraph-0.17.5 certifi-2026.2.25 charset_normalizer-3.4.7 customtkinter-5.2.2 darkdetect-0.8.0 idna-3.11 packaging-26.0 pefile-2024.8.26 psutil-7.2.2 pyinstaller-6.6.0 pyinstaller-hooks-contrib-2026.4 pywin32-ctypes-0.2.3 requests-2.33.1 urllib3-2.6.3 yt-dlp-2026.3.17

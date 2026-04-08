@@ -1,0 +1,27 @@
+﻿2026-04-08T17:04:32.1079955Z ##[group]Run bash ./build_linux.sh
+2026-04-08T17:04:32.1080274Z [36;1mbash ./build_linux.sh[0m
+2026-04-08T17:04:32.1106684Z shell: /usr/bin/bash -e {0}
+2026-04-08T17:04:32.1106953Z env:
+2026-04-08T17:04:32.1107206Z   pythonLocation: /opt/hostedtoolcache/Python/3.11.15/x64
+2026-04-08T17:04:32.1107638Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.11.15/x64/lib/pkgconfig
+2026-04-08T17:04:32.1108035Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.15/x64
+2026-04-08T17:04:32.1108394Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.15/x64
+2026-04-08T17:04:32.1108754Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.15/x64
+2026-04-08T17:04:32.1109132Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.11.15/x64/lib
+2026-04-08T17:04:32.1109431Z ##[endgroup]
+2026-04-08T17:04:32.1206312Z ========================================
+2026-04-08T17:04:32.1207040Z   MediaGrab 1.0.6 — Linux Build
+2026-04-08T17:04:32.1207453Z ========================================
+2026-04-08T17:04:32.1207754Z 
+2026-04-08T17:04:32.1208129Z [0;32m[INFO][0m  Cleaning previous build artifacts...
+2026-04-08T17:04:32.1218013Z [0;32m[INFO][0m  Building PyInstaller executable...
+2026-04-08T17:04:32.5603770Z 332 INFO: PyInstaller: 6.6.0, contrib hooks: 2026.4
+2026-04-08T17:04:32.5604426Z 333 INFO: Python: 3.11.15
+2026-04-08T17:04:32.5617451Z 334 INFO: Platform: Linux-6.17.0-1008-azure-x86_64-with-glibc2.39
+2026-04-08T17:04:32.5620017Z 334 INFO: wrote /home/runner/work/MediaGrab/MediaGrab/desktop/MediaGrab.spec
+2026-04-08T17:04:32.6421685Z 414 INFO: UPX is available but is disabled on non-Windows due to known compatibility problems.
+2026-04-08T17:04:33.2607161Z 1033 INFO: Extending PYTHONPATH with paths
+2026-04-08T17:04:33.2607662Z ['/home/runner/work/MediaGrab/MediaGrab/desktop']
+2026-04-08T17:04:33.4712431Z 1243 INFO: Appending 'datas' from .spec
+2026-04-08T17:04:33.4714693Z Unable to find '/home/runner/work/MediaGrab/MediaGrab/VERSION' when adding binary and data files.
+2026-04-08T17:04:33.4901114Z ##[error]Process completed with exit code 1.

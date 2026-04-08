@@ -51,20 +51,6 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
-      # 5.5 — Fix react-native-zeroconf deprecated compile method
-      - name: Fix react-native-zeroconf Gradle
-        run: |
-          ZEROCONF_GRADLE="node_modules/react-native-zeroconf/android/build.gradle"
-          if [ -f "$ZEROCONF_GRADLE" ]; then
-            sed -i 's/compile '"'"'/implementation '"'"'/g' "$ZEROCONF_GRADLE"
-            sed -i "s/compileSdkVersion.*/compileSdkVersion 34/" "$ZEROCONF_GRADLE"
-            sed -i "s/minSdkVersion.*/minSdkVersion 21/" "$ZEROCONF_GRADLE"
-            sed -i "s/targetSdkVersion.*/targetSdkVersion 34/" "$ZEROCONF_GRADLE"
-            sed -i '/buildToolsVersion/d' "$ZEROCONF_GRADLE"
-            sed -i "s/classpath.*com.android.tools.build:gradle.*/classpath 'com.android.tools.build:gradle:8.0.0'/" "$ZEROCONF_GRADLE"
-            sed -i 's/jcenter()/google()/g' "$ZEROCONF_GRADLE"
-            grep -q 'mavenCentral()' "$ZEROCONF_GRADLE" || sed -i '/google()/a\        mavenCentral()' "$ZEROCONF_GRADLE"
-          fi
 
       # 6 — Expo CLI (local, no account needed)
       - name: Install Expo CLI

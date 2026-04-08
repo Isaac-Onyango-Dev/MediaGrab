@@ -1,0 +1,6 @@
+﻿2026-04-08T17:04:25.4679297Z Post job cleanup.
+2026-04-08T17:04:25.6879314Z ##[group]Removing temp folder /home/runner/work/_temp/docker-actions-toolkit-8aYDWe
+2026-04-08T17:04:25.6888428Z ##[endgroup]
+2026-04-08T17:04:25.6889285Z ##[group]Post cache
+2026-04-08T17:04:25.6891464Z State not set
+2026-04-08T17:04:25.6892036Z ##[endgroup]

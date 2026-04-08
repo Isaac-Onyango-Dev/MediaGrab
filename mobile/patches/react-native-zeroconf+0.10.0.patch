@@ -1,7 +1,8 @@
 diff --git a/node_modules/react-native-zeroconf/android/build.gradle b/node_modules/react-native-zeroconf/android/build.gradle
+index e7f2c42..a2f9b3c 100644
 --- a/node_modules/react-native-zeroconf/android/build.gradle
 +++ b/node_modules/react-native-zeroconf/android/build.gradle
-@@ -1,9 +1,10 @@
+@@ -1,30 +1,30 @@
  buildscript {
      repositories {
 -        jcenter()
@@ -14,7 +15,8 @@ diff --git a/node_modules/react-native-zeroconf/android/build.gradle b/node_modu
 +        classpath 'com.android.tools.build:gradle:8.0.0'
      }
  }
-@@ -11,12 +12,11 @@
+ 
+ apply plugin: 'com.android.library'
  
  android {
 -    compileSdkVersion 25
@@ -29,7 +31,6 @@ diff --git a/node_modules/react-native-zeroconf/android/build.gradle b/node_modu
          versionCode 1
          versionName "1.0"
      }
-@@ -24,9 +24,10 @@
  }
  
  repositories {

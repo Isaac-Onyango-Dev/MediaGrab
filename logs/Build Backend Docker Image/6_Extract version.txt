@@ -1,0 +1,8 @@
+﻿2026-04-08T17:04:24.6197068Z ##[group]Run VERSION=$(cat VERSION | tr -d '[:space:]')
+2026-04-08T17:04:24.6197500Z [36;1mVERSION=$(cat VERSION | tr -d '[:space:]')[0m
+2026-04-08T17:04:24.6198128Z [36;1mecho "version=$VERSION" >> $GITHUB_OUTPUT[0m
+2026-04-08T17:04:24.6198435Z [36;1mecho "Building version: $VERSION"[0m
+2026-04-08T17:04:24.6225032Z shell: /usr/bin/bash -e {0}
+2026-04-08T17:04:24.6225481Z ##[endgroup]
+2026-04-08T17:04:24.6281784Z cat: VERSION: No such file or directory
+2026-04-08T17:04:24.6286738Z Building version: 

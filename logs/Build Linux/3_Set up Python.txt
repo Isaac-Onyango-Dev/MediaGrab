@@ -1,0 +1,22 @@
+﻿2026-04-08T17:04:12.7998067Z ##[group]Run actions/setup-python@v5
+2026-04-08T17:04:12.7999055Z with:
+2026-04-08T17:04:12.7999736Z   python-version: 3.11
+2026-04-08T17:04:12.8000504Z   cache: pip
+2026-04-08T17:04:12.8001386Z   cache-dependency-path: desktop/requirements.txt
+2026-04-08T17:04:12.8002469Z   check-latest: false
+2026-04-08T17:04:12.8003465Z   token: ***
+2026-04-08T17:04:12.8004183Z   update-environment: true
+2026-04-08T17:04:12.8005068Z   allow-prereleases: false
+2026-04-08T17:04:12.8006220Z   freethreaded: false
+2026-04-08T17:04:12.8006996Z ##[endgroup]
+2026-04-08T17:04:12.9661007Z ##[group]Installed versions
+2026-04-08T17:04:12.9756098Z Successfully set up CPython (3.11.15)
+2026-04-08T17:04:12.9758760Z ##[endgroup]
+2026-04-08T17:04:13.0050210Z [command]/opt/hostedtoolcache/Python/3.11.15/x64/bin/pip cache dir
+2026-04-08T17:04:13.2821508Z /home/runner/.cache/pip
+2026-04-08T17:04:13.3917116Z Cache hit for: setup-python-Linux-x64-24.04-Ubuntu-python-3.11.15-pip-aacda1f2089ad28d43e0391ee9be94f001d15682877f663718c06d3f8e678cbb
+2026-04-08T17:04:13.8561768Z Received 44863318 of 44863318 (100.0%), 103.8 MBs/sec
+2026-04-08T17:04:13.8562699Z Cache Size: ~43 MB (44863318 B)
+2026-04-08T17:04:13.8596046Z [command]/usr/bin/tar -xf /home/runner/work/_temp/7fdfe96a-9bda-4a0b-8327-8cefe9e975ee/cache.tzst -P -C /home/runner/work/MediaGrab/MediaGrab --use-compress-program unzstd
+2026-04-08T17:04:13.9542244Z Cache restored successfully
+2026-04-08T17:04:13.9570907Z Cache restored from key: setup-python-Linux-x64-24.04-Ubuntu-python-3.11.15-pip-aacda1f2089ad28d43e0391ee9be94f001d15682877f663718c06d3f8e678cbb

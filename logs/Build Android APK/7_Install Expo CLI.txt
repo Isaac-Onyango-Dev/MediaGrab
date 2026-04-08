@@ -1,0 +1,16 @@
+﻿2026-04-08T17:04:26.0650824Z ##[group]Run npm install -g @expo/cli
+2026-04-08T17:04:26.0651142Z [36;1mnpm install -g @expo/cli[0m
+2026-04-08T17:04:26.0672224Z shell: /usr/bin/bash -e {0}
+2026-04-08T17:04:26.0672483Z env:
+2026-04-08T17:04:26.0672791Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.18-8/x64
+2026-04-08T17:04:26.0673284Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.18-8/x64
+2026-04-08T17:04:26.0673845Z ##[endgroup]
+2026-04-08T17:04:43.2739450Z npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+2026-04-08T17:04:43.4649816Z npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+2026-04-08T17:04:43.5382739Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-04-08T17:04:43.5393607Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-04-08T17:04:49.2244726Z 
+2026-04-08T17:04:49.2245314Z added 531 packages in 23s
+2026-04-08T17:04:49.2245625Z 
+2026-04-08T17:04:49.2245878Z 44 packages are looking for funding
+2026-04-08T17:04:49.2246307Z   run `npm fund` for details

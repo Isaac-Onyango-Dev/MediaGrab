@@ -1,0 +1,44 @@
+﻿2026-04-08T17:04:57.3303101Z ##[group]Run .\build_windows.bat
+2026-04-08T17:04:57.3303434Z [36;1m.\build_windows.bat[0m
+2026-04-08T17:04:57.3364183Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-04-08T17:04:57.3364532Z env:
+2026-04-08T17:04:57.3364799Z   pythonLocation: C:\hostedtoolcache\windows\Python\3.11.9\x64
+2026-04-08T17:04:57.3365243Z   PKG_CONFIG_PATH: C:\hostedtoolcache\windows\Python\3.11.9\x64/lib/pkgconfig
+2026-04-08T17:04:57.3365704Z   Python_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.11.9\x64
+2026-04-08T17:04:57.3366115Z   Python2_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.11.9\x64
+2026-04-08T17:04:57.3366520Z   Python3_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.11.9\x64
+2026-04-08T17:04:57.3366836Z ##[endgroup]
+2026-04-08T17:04:57.6293853Z ============================================
+2026-04-08T17:04:57.6296265Z   MediaGrab - Windows Build Script
+2026-04-08T17:04:57.6299183Z ============================================
+2026-04-08T17:04:57.6326957Z 
+2026-04-08T17:04:57.6330897Z [1/5] Installing Python dependencies...
+2026-04-08T17:04:58.7287284Z Requirement already satisfied: customtkinter==5.2.2 in C:\hostedtoolcache\windows\Python\3.11.9\x64\Lib\site-packages (from -r requirements.txt (line 4)) (5.2.2)
+2026-04-08T17:04:58.7292895Z Requirement already satisfied: yt-dlp in C:\hostedtoolcache\windows\Python\3.11.9\x64\Lib\site-packages (from -r requirements.txt (line 5)) (2026.3.17)
+2026-04-08T17:04:58.7297600Z Requirement already satisfied: pyinstaller==6.6.0 in C:\hostedtoolcache\windows\Python\3.11.9\x64\Lib\site-packages (from -r requirements.txt (line 6)) (6.6.0)
+2026-04-08T17:04:58.7302173Z Requirement already satisfied: Pillow>=10.3.0 in C:\hostedtoolcache\windows\Python\3.11.9\x64\Lib\site-packages (from -r requirements.txt (line 7)) (12.2.0)
+2026-04-08T17:04:58.7306817Z Requirement already satisfied: requests>=2.31.0 in C:\hostedtoolcache\windows\Python\3.11.9\x64\Lib\site-packages (from -r requirements.txt (line 8)) (2.33.1)
+2026-04-08T17:04:58.7311444Z Requirement already satisfied: psutil>=5.9.8 in C:\hostedtoolcache\windows\Python\3.11.9\x64\Lib\site-packages (from -r requirements.txt (line 9)) (7.2.2)
+2026-04-08T17:04:58.7320884Z Requirement already satisfied: darkdetect in C:\hostedtoolcache\windows\Python\3.11.9\x64\Lib\site-packages (from customtkinter==5.2.2->-r requirements.txt (line 4)) (0.8.0)
+2026-04-08T17:04:58.7325950Z Requirement already satisfied: packaging in C:\hostedtoolcache\windows\Python\3.11.9\x64\Lib\site-packages (from customtkinter==5.2.2->-r requirements.txt (line 4)) (26.0)
+2026-04-08T17:04:58.7339455Z Requirement already satisfied: setuptools>=42.0.0 in C:\hostedtoolcache\windows\Python\3.11.9\x64\Lib\site-packages (from pyinstaller==6.6.0->-r requirements.txt (line 6)) (65.5.0)
+2026-04-08T17:04:58.7343557Z Requirement already satisfied: altgraph in C:\hostedtoolcache\windows\Python\3.11.9\x64\Lib\site-packages (from pyinstaller==6.6.0->-r requirements.txt (line 6)) (0.17.5)
+2026-04-08T17:04:58.7348607Z Requirement already satisfied: pyinstaller-hooks-contrib>=2024.3 in C:\hostedtoolcache\windows\Python\3.11.9\x64\Lib\site-packages (from pyinstaller==6.6.0->-r requirements.txt (line 6)) (2026.4)
+2026-04-08T17:04:58.7359677Z Requirement already satisfied: pefile>=2022.5.30 in C:\hostedtoolcache\windows\Python\3.11.9\x64\Lib\site-packages (from pyinstaller==6.6.0->-r requirements.txt (line 6)) (2024.8.26)
+2026-04-08T17:04:58.7366684Z Requirement already satisfied: pywin32-ctypes>=0.2.1 in C:\hostedtoolcache\windows\Python\3.11.9\x64\Lib\site-packages (from pyinstaller==6.6.0->-r requirements.txt (line 6)) (0.2.3)
+2026-04-08T17:04:58.7452523Z Requirement already satisfied: charset_normalizer<4,>=2 in C:\hostedtoolcache\windows\Python\3.11.9\x64\Lib\site-packages (from requests>=2.31.0->-r requirements.txt (line 8)) (3.4.7)
+2026-04-08T17:04:58.7457182Z Requirement already satisfied: idna<4,>=2.5 in C:\hostedtoolcache\windows\Python\3.11.9\x64\Lib\site-packages (from requests>=2.31.0->-r requirements.txt (line 8)) (3.11)
+2026-04-08T17:04:58.7462364Z Requirement already satisfied: urllib3<3,>=1.26 in C:\hostedtoolcache\windows\Python\3.11.9\x64\Lib\site-packages (from requests>=2.31.0->-r requirements.txt (line 8)) (2.6.3)
+2026-04-08T17:04:58.7467176Z Requirement already satisfied: certifi>=2023.5.7 in C:\hostedtoolcache\windows\Python\3.11.9\x64\Lib\site-packages (from requests>=2.31.0->-r requirements.txt (line 8)) (2026.2.25)
+2026-04-08T17:04:58.8335976Z 
+2026-04-08T17:04:58.8340666Z [2/5] Building PyInstaller executable...
+2026-04-08T17:04:59.6583120Z 711 INFO: PyInstaller: 6.6.0, contrib hooks: 2026.4
+2026-04-08T17:04:59.6583672Z 711 INFO: Python: 3.11.9
+2026-04-08T17:04:59.6665937Z 719 INFO: Platform: Windows-10-10.0.26100-SP0
+2026-04-08T17:04:59.6671524Z 719 INFO: wrote D:\a\MediaGrab\MediaGrab\desktop\MediaGrab.spec
+2026-04-08T17:05:01.2593537Z 2312 INFO: Extending PYTHONPATH with paths
+2026-04-08T17:05:01.2594048Z ['D:\\a\\MediaGrab\\MediaGrab\\desktop']
+2026-04-08T17:05:01.6465660Z 2699 INFO: Appending 'datas' from .spec
+2026-04-08T17:05:01.6471935Z Unable to find 'D:\\a\\MediaGrab\\MediaGrab\\VERSION' when adding binary and data files.
+2026-04-08T17:05:01.6754495Z ERROR: PyInstaller build failed.
+2026-04-08T17:05:01.8050919Z ##[error]Process completed with exit code 1.

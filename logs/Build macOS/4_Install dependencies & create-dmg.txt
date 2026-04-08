@@ -1,0 +1,65 @@
+﻿2026-04-08T17:04:17.5508310Z ##[group]Run brew install create-dmg
+2026-04-08T17:04:17.5508660Z [36;1mbrew install create-dmg[0m
+2026-04-08T17:04:17.5508890Z [36;1mpip install -r desktop/requirements.txt[0m
+2026-04-08T17:04:17.5555140Z shell: /bin/bash -e {0}
+2026-04-08T17:04:17.5555330Z env:
+2026-04-08T17:04:17.5555620Z   pythonLocation: /Users/runner/hostedtoolcache/Python/3.11.9/arm64
+2026-04-08T17:04:17.5556050Z   PKG_CONFIG_PATH: /Users/runner/hostedtoolcache/Python/3.11.9/arm64/lib/pkgconfig
+2026-04-08T17:04:17.5556440Z   Python_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.11.9/arm64
+2026-04-08T17:04:17.5556800Z   Python2_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.11.9/arm64
+2026-04-08T17:04:17.5557170Z   Python3_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.11.9/arm64
+2026-04-08T17:04:17.5557420Z ##[endgroup]
+2026-04-08T17:04:19.8893110Z ✔︎ JSON API formula_tap_migrations.jws.json
+2026-04-08T17:04:19.8893640Z ✔︎ JSON API cask_tap_migrations.jws.json
+2026-04-08T17:04:21.3019730Z [32m==>[0m [1mFetching downloads for: [32mcreate-dmg[39m[0m
+2026-04-08T17:04:21.7360170Z ✔︎ Bottle Manifest create-dmg (1.2.3)
+2026-04-08T17:04:22.2501640Z ✔︎ Bottle create-dmg (1.2.3)
+2026-04-08T17:04:22.3805450Z [34m==>[0m [1mPouring create-dmg--1.2.3.all.bottle.tar.gz[0m
+2026-04-08T17:04:23.7751410Z 🍺  /opt/homebrew/Cellar/create-dmg/1.2.3: 13 files, 73.9KB
+2026-04-08T17:04:24.4283900Z Collecting customtkinter==5.2.2 (from -r desktop/requirements.txt (line 4))
+2026-04-08T17:04:24.4300400Z   Using cached customtkinter-5.2.2-py3-none-any.whl.metadata (677 bytes)
+2026-04-08T17:04:24.5223640Z Collecting yt-dlp (from -r desktop/requirements.txt (line 5))
+2026-04-08T17:04:24.5240090Z   Using cached yt_dlp-2026.3.17-py3-none-any.whl.metadata (182 kB)
+2026-04-08T17:04:24.5513990Z Collecting pyinstaller==6.6.0 (from -r desktop/requirements.txt (line 6))
+2026-04-08T17:04:24.5533020Z   Using cached pyinstaller-6.6.0-py3-none-macosx_10_13_universal2.whl.metadata (8.3 kB)
+2026-04-08T17:04:24.6382290Z Collecting Pillow>=10.3.0 (from -r desktop/requirements.txt (line 7))
+2026-04-08T17:04:24.6403460Z   Using cached pillow-12.2.0-cp311-cp311-macosx_11_0_arm64.whl.metadata (8.8 kB)
+2026-04-08T17:04:24.6532240Z Collecting requests>=2.31.0 (from -r desktop/requirements.txt (line 8))
+2026-04-08T17:04:24.6550740Z   Using cached requests-2.33.1-py3-none-any.whl.metadata (4.8 kB)
+2026-04-08T17:04:24.6909150Z Collecting psutil>=5.9.8 (from -r desktop/requirements.txt (line 9))
+2026-04-08T17:04:24.6925560Z   Using cached psutil-7.2.2-cp36-abi3-macosx_11_0_arm64.whl.metadata (22 kB)
+2026-04-08T17:04:24.7030970Z Collecting darkdetect (from customtkinter==5.2.2->-r desktop/requirements.txt (line 4))
+2026-04-08T17:04:24.7042020Z   Using cached darkdetect-0.8.0-py3-none-any.whl.metadata (3.6 kB)
+2026-04-08T17:04:24.7128350Z Collecting packaging (from customtkinter==5.2.2->-r desktop/requirements.txt (line 4))
+2026-04-08T17:04:24.7141820Z   Using cached packaging-26.0-py3-none-any.whl.metadata (3.3 kB)
+2026-04-08T17:04:24.7155690Z Requirement already satisfied: setuptools>=42.0.0 in /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages (from pyinstaller==6.6.0->-r desktop/requirements.txt (line 6)) (65.5.0)
+2026-04-08T17:04:24.7242410Z Collecting altgraph (from pyinstaller==6.6.0->-r desktop/requirements.txt (line 6))
+2026-04-08T17:04:24.7262720Z   Using cached altgraph-0.17.5-py2.py3-none-any.whl.metadata (7.5 kB)
+2026-04-08T17:04:24.7382140Z Collecting pyinstaller-hooks-contrib>=2024.3 (from pyinstaller==6.6.0->-r desktop/requirements.txt (line 6))
+2026-04-08T17:04:24.7398220Z   Using cached pyinstaller_hooks_contrib-2026.4-py3-none-any.whl.metadata (16 kB)
+2026-04-08T17:04:24.7488220Z Collecting macholib>=1.8 (from pyinstaller==6.6.0->-r desktop/requirements.txt (line 6))
+2026-04-08T17:04:24.7500070Z   Using cached macholib-1.16.4-py2.py3-none-any.whl.metadata (12 kB)
+2026-04-08T17:04:24.7975260Z Collecting charset_normalizer<4,>=2 (from requests>=2.31.0->-r desktop/requirements.txt (line 8))
+2026-04-08T17:04:24.7991360Z   Using cached charset_normalizer-3.4.7-cp311-cp311-macosx_10_9_universal2.whl.metadata (40 kB)
+2026-04-08T17:04:24.8080010Z Collecting idna<4,>=2.5 (from requests>=2.31.0->-r desktop/requirements.txt (line 8))
+2026-04-08T17:04:24.8092750Z   Using cached idna-3.11-py3-none-any.whl.metadata (8.4 kB)
+2026-04-08T17:04:24.8368020Z Collecting urllib3<3,>=1.26 (from requests>=2.31.0->-r desktop/requirements.txt (line 8))
+2026-04-08T17:04:24.8383730Z   Using cached urllib3-2.6.3-py3-none-any.whl.metadata (6.9 kB)
+2026-04-08T17:04:24.8401950Z Requirement already satisfied: certifi>=2023.5.7 in /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages (from requests>=2.31.0->-r desktop/requirements.txt (line 8)) (2026.2.25)
+2026-04-08T17:04:24.8459370Z Using cached customtkinter-5.2.2-py3-none-any.whl (296 kB)
+2026-04-08T17:04:24.8478300Z Using cached pyinstaller-6.6.0-py3-none-macosx_10_13_universal2.whl (959 kB)
+2026-04-08T17:04:24.8502590Z Using cached yt_dlp-2026.3.17-py3-none-any.whl (3.3 MB)
+2026-04-08T17:04:24.8562710Z Using cached pillow-12.2.0-cp311-cp311-macosx_11_0_arm64.whl (4.7 MB)
+2026-04-08T17:04:24.8618390Z Using cached requests-2.33.1-py3-none-any.whl (64 kB)
+2026-04-08T17:04:24.8633710Z Using cached charset_normalizer-3.4.7-cp311-cp311-macosx_10_9_universal2.whl (309 kB)
+2026-04-08T17:04:24.8656960Z Using cached idna-3.11-py3-none-any.whl (71 kB)
+2026-04-08T17:04:24.8670380Z Using cached urllib3-2.6.3-py3-none-any.whl (131 kB)
+2026-04-08T17:04:24.8686300Z Using cached psutil-7.2.2-cp36-abi3-macosx_11_0_arm64.whl (129 kB)
+2026-04-08T17:04:24.8699530Z Using cached macholib-1.16.4-py2.py3-none-any.whl (38 kB)
+2026-04-08T17:04:24.8712090Z Using cached altgraph-0.17.5-py2.py3-none-any.whl (21 kB)
+2026-04-08T17:04:24.8728280Z Using cached packaging-26.0-py3-none-any.whl (74 kB)
+2026-04-08T17:04:24.8741600Z Using cached pyinstaller_hooks_contrib-2026.4-py3-none-any.whl (455 kB)
+2026-04-08T17:04:24.8759220Z Using cached darkdetect-0.8.0-py3-none-any.whl (9.0 kB)
+2026-04-08T17:04:24.9161340Z Installing collected packages: altgraph, yt-dlp, urllib3, psutil, Pillow, packaging, macholib, idna, darkdetect, charset_normalizer, requests, pyinstaller-hooks-contrib, customtkinter, pyinstaller
+2026-04-08T17:04:27.1377640Z 
+2026-04-08T17:04:27.1385920Z Successfully installed Pillow-12.2.0 altgraph-0.17.5 charset_normalizer-3.4.7 customtkinter-5.2.2 darkdetect-0.8.0 idna-3.11 macholib-1.16.4 packaging-26.0 psutil-7.2.2 pyinstaller-6.6.0 pyinstaller-hooks-contrib-2026.4 requests-2.33.1 urllib3-2.6.3 yt-dlp-2026.3.17

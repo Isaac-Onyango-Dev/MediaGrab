@@ -1,0 +1,22 @@
+﻿2026-04-08T17:04:49.2757707Z ##[group]Run npx expo prebuild --platform android --clean --no-install
+2026-04-08T17:04:49.2758403Z [36;1mnpx expo prebuild --platform android --clean --no-install[0m
+2026-04-08T17:04:49.2780737Z shell: /usr/bin/bash -e {0}
+2026-04-08T17:04:49.2780992Z env:
+2026-04-08T17:04:49.2781298Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.18-8/x64
+2026-04-08T17:04:49.2781772Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.18-8/x64
+2026-04-08T17:04:49.2782133Z ##[endgroup]
+2026-04-08T17:04:49.7872071Z Warning! Your git working tree is dirty.
+2026-04-08T17:04:49.7873832Z It's recommended to commit all your changes before proceeding, so you can revert the changes made by this command if necessary.
+2026-04-08T17:04:49.7878156Z Git status is dirty but the command will continue because the terminal is not interactive.
+2026-04-08T17:04:49.8053293Z - Clearing android
+2026-04-08T17:04:49.8067623Z ✔ Cleared android code
+2026-04-08T17:04:50.0654981Z - Creating native directory (./android)
+2026-04-08T17:04:51.3336506Z ✔ Created native directory
+2026-04-08T17:04:51.3337295Z - Updating package.json
+2026-04-08T17:04:51.3358231Z › Using current versions instead of recommended react-native@0.74.5.
+2026-04-08T17:04:51.3358918Z - Updating package.json
+2026-04-08T17:04:51.3360269Z ✔ Updated package.json | no changes
+2026-04-08T17:04:51.3361566Z - Running prebuild
+2026-04-08T17:04:53.1185762Z » android: userInterfaceStyle: Install expo-system-ui in your project to enable this feature.
+2026-04-08T17:04:53.1186756Z - Running prebuild
+2026-04-08T17:04:53.1254962Z ✔ Finished prebuild
