@@ -72,7 +72,7 @@ jobs:
         name: website-coverage-${{ matrix.node-version }}
 
     - name: Upload test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: test-results-node-${{ matrix.node-version }}
@@ -114,7 +114,7 @@ jobs:
         npx bundlesize
 
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: build-artifacts
         path: website/dist/
@@ -160,7 +160,7 @@ jobs:
         LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
 
     - name: Upload Lighthouse results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: lighthouse-results
@@ -198,7 +198,7 @@ jobs:
         npm run test:a11y || true
 
     - name: Upload accessibility results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: accessibility-results

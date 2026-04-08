@@ -52,12 +52,11 @@ pyinstaller --noconfirm \
     --add-data "assets:assets" \
     --add-data "../VERSION:." \
     --add-data "../shared:shared" \
-    --hidden-import "customtkinter" \
-    --hidden-import "yt_dlp" \
-    --hidden-import "PIL" \
+    --collect-all "customtkinter" \
+    --collect-all "yt_dlp" \
+    --collect-all "PIL" \
     --hidden-import "requests" \
     --hidden-import "psutil" \
-    --collect-all "yt_dlp" \
     main.py
 
 if [ ! -d "$APP_BUNDLE" ]; then

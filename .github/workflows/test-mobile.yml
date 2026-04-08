@@ -72,7 +72,7 @@ jobs:
         name: mobile-coverage-${{ matrix.node-version }}
 
     - name: Upload test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: test-results-node-${{ matrix.node-version }}
@@ -168,7 +168,7 @@ jobs:
         npm run test:e2e || true
 
     - name: Upload E2E test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: e2e-test-results

@@ -47,12 +47,9 @@ build_executable() {
         --add-data "assets:assets" \
         --add-data "../VERSION:." \
         --add-data "../shared:shared" \
-        --hidden-import "customtkinter" \
-        --hidden-import "yt_dlp" \
-        --hidden-import "PIL" \
-        --hidden-import "requests" \
-        --hidden-import "psutil" \
+        --collect-all "customtkinter" \
         --collect-all "yt_dlp" \
+        --collect-all "PIL" \
         main.py
 
     # Move the binary into dist/ for the next stages
