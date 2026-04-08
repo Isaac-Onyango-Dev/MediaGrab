@@ -15,7 +15,7 @@ if !ERRORLEVEL! NEQ 0 (
 echo.
 
 echo [2/5] Building PyInstaller executable...
-pyinstaller --noconfirm --onefile --windowed --name "MediaGrab" --add-data "assets;assets" --add-data "../VERSION;." --hidden-import "customtkinter" --hidden-import "yt_dlp" --hidden-import "PIL" --hidden-import "requests" --hidden-import "psutil" --collect-all "yt_dlp" main.py
+pyinstaller --noconfirm --onefile --windowed --name "MediaGrab" --add-data "assets;assets" --add-data "../VERSION;." --add-data "../shared;shared" --hidden-import "customtkinter" --hidden-import "yt_dlp" --hidden-import "PIL" --hidden-import "requests" --hidden-import "psutil" --collect-all "yt_dlp" main.py
 if !ERRORLEVEL! NEQ 0 (
     echo ERROR: PyInstaller build failed.
     exit /b 1

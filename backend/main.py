@@ -10,11 +10,21 @@ from __future__ import annotations
 
 import asyncio
 import os
-import time
+import sys
+import json
 import uuid
+import time
+import shutil
 import socket
 from contextlib import asynccontextmanager
 from pathlib import Path
+
+# --- BOOTSTRAP PATH ---
+# Ensures 'shared' module is found when running from 'backend/' or bundled
+_base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if _base_path not in sys.path:
+    sys.path.insert(0, _base_path)
+# ----------------------
 
 from zeroconf import IPVersion, ServiceInfo, Zeroconf
 

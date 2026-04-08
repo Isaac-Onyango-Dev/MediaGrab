@@ -10,6 +10,15 @@ Build Linux:   ./build_linux.sh
 
 from __future__ import annotations
 
+# --- BOOTSTRAP PATH ---
+# Ensures 'shared' module is found when running from 'desktop/' or bundled
+import sys
+import os
+_base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if _base_path not in sys.path:
+    sys.path.insert(0, _base_path)
+# ----------------------
+
 import json
 import os
 import re

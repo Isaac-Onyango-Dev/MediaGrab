@@ -46,6 +46,7 @@ build_executable() {
         --name "$APP_BINARY" \
         --add-data "assets:assets" \
         --add-data "../VERSION:." \
+        --add-data "../shared:shared" \
         --hidden-import "customtkinter" \
         --hidden-import "yt_dlp" \
         --hidden-import "PIL" \
