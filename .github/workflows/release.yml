@@ -29,6 +29,9 @@ jobs:
           cache: 'pip'
           cache-dependency-path: desktop/requirements.txt
 
+      - name: Install Inno Setup
+        run: choco install innosetup -y
+
       - name: Install dependencies
         working-directory: desktop
         run: pip install -r requirements.txt
