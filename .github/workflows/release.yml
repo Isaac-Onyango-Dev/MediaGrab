@@ -60,11 +60,12 @@ jobs:
           echo "Building version: $VERSION"
 
       - name: Compile Inno Setup Installer
-        uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
-        with:
-          path: installer_windows.iss
-          options: /O+ /DMyAppVersion=${{ steps.version.outputs.version }}
+        run: |
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (!(Test-Path $iscc)) { $iscc = "iscc" }
+          & $iscc installer_windows.iss /O+ /DMyAppVersion=${{ steps.version.outputs.version }}
         working-directory: desktop
+        shell: pwsh
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -243,6 +244,9 @@ jobs:
     name: Build Backend Docker Image
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4
 
