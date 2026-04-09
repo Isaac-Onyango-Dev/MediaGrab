@@ -57,7 +57,7 @@ jobs:
     - name: Install system dependencies (Windows)
       if: matrix.os == 'windows-latest'
       run: |
-        choco install ffmpeg
+        choco install ffmpeg inno-setup -y
 
     - name: Install Python dependencies
       run: |

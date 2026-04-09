@@ -1,9 +1,9 @@
-# MediaGrab Desktop – Python Dependencies
-# Install: pip install -r requirements.txt
+# MediaGrab Desktop - Production Dependencies
+# Python 3.10+ | Windows, macOS, Linux
 
 customtkinter==5.2.2
-yt-dlp
-pyinstaller==6.6.0
+yt-dlp>=2024.0.0
+pyinstaller>=6.10.0
 Pillow>=10.3.0
 requests>=2.31.0
 psutil>=5.9.8

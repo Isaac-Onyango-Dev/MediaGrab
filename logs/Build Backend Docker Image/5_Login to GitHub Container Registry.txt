@@ -1,9 +1,0 @@
-﻿2026-04-08T17:04:23.7700983Z ##[group]Run docker/login-action@v3
-2026-04-08T17:04:23.7701348Z with:
-2026-04-08T17:04:23.7701519Z   registry: ghcr.io
-2026-04-08T17:04:23.7701725Z   username: Isaac-Onyango-Dev
-2026-04-08T17:04:23.7702188Z   password: ***
-2026-04-08T17:04:23.7702371Z   logout: true
-2026-04-08T17:04:23.7702550Z ##[endgroup]
-2026-04-08T17:04:24.0751258Z Logging into ghcr.io...
-2026-04-08T17:04:24.6091600Z Login Succeeded!

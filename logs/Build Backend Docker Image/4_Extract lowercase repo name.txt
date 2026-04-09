@@ -1,4 +1,0 @@
-﻿2026-04-08T17:04:23.7516283Z ##[group]Run echo "name=$(echo 'Isaac-Onyango-Dev/MediaGrab' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
-2026-04-08T17:04:23.7517139Z [36;1mecho "name=$(echo 'Isaac-Onyango-Dev/MediaGrab' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT[0m
-2026-04-08T17:04:23.7546718Z shell: /usr/bin/bash -e {0}
-2026-04-08T17:04:23.7547003Z ##[endgroup]

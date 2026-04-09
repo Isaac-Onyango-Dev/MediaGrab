@@ -102,7 +102,7 @@ def _get_client_identifier(request: Request) -> str:
     client_id = request.headers.get("X-Client-ID")
     if client_id:
         return client_id
-    
+
     # Fall back to IP address
     client_host = request.client.host if request.client else "unknown"
     user_agent = request.headers.get("User-Agent", "unknown")
@@ -113,7 +113,7 @@ def _verify_task_ownership(task_id: str, request: Request) -> None:
     """Verify that the client owns this task."""
     client_id = _get_client_identifier(request)
     owner_id = task_owners.get(task_id)
-    
+
     if owner_id is None:
         raise HTTPException(status_code=404, detail="Task not found")
     

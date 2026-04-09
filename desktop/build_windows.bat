@@ -15,16 +15,10 @@ if !ERRORLEVEL! NEQ 0 (
 echo.
 
 echo [2/5] Building PyInstaller executable...
-:: Temporary copy of VERSION and shared to work around PyInstaller relative path issues on Windows
-if exist "..\VERSION" copy "..\VERSION" "VERSION"
-if exist "..\shared" xcopy /E /I /Y "..\shared" "shared"
+:: Use parent directory paths like Linux/macOS (no file copying needed)
 
-pyinstaller --noconfirm --onefile --windowed --name "MediaGrab" --add-data "assets;assets" --add-data "VERSION;." --add-data "shared;shared" --collect-all "customtkinter" --collect-all "yt_dlp" --collect-all "PIL" --hidden-import "requests" --hidden-import "psutil" main.py
+pyinstaller --noconfirm --onefile --windowed --name "MediaGrab" --add-data "assets;assets" --add-data "../VERSION;." --add-data "../shared;shared" --collect-all "customtkinter" --collect-all "yt_dlp" --collect-all "PIL" --hidden-import "requests" --hidden-import "psutil" main.py
 set "PY_ERRORLEVEL=!ERRORLEVEL!"
-
-:: Cleanup temporary copies
-if exist "VERSION" del "VERSION"
-if exist "shared" rmdir /s /q "shared"
 
 if !PY_ERRORLEVEL! NEQ 0 (
     echo ERROR: PyInstaller build failed.
@@ -93,8 +87,9 @@ echo.
 :summary
 echo [5/5] Build Summary
 echo ============================================
-if exist "!STAGING!\MediaGrab.exe" (
+if exist "dist\MediaGrab.exe" (
     echo [OK] MediaGrab.exe (PyInstaller)
+    for %%A in ("dist\MediaGrab.exe") do echo      Size: %%~zA bytes
 ) else (
     echo [FAIL] MediaGrab.exe not found
 )
@@ -106,7 +101,7 @@ for %%f in (dist\MediaGrab-*-Setup.exe) do (
 if "!FOUND_INSTALLER!"=="1" (
     echo [OK] MediaGrab Setup Installer
 ) else (
-    echo [--] Setup Installer not built
+    echo [--] Setup Installer not built (Inno Setup not installed)
 )
 echo ============================================
 echo.
