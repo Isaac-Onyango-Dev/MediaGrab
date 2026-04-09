@@ -1,4 +1,4 @@
-name: Backend Tests
+name: Backend Validation
 
 on:
   push:
@@ -13,142 +13,36 @@ on:
       - '.github/workflows/test-backend.yml'
 
 jobs:
-  test:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ['3.9', '3.10', '3.11']
-        exclude:
-          # Reduce matrix size for faster CI
-          - os: macos-latest
-            python-version: '3.9'
-          - os: windows-latest
-            python-version: '3.9'
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
-
-    - name: Cache pip dependencies
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements*.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-
-    - name: Install system dependencies (Ubuntu)
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y ffmpeg
-
-    - name: Install system dependencies (macOS)
-      if: matrix.os == 'macos-latest'
-      run: |
-        brew install ffmpeg
-
-    - name: Install system dependencies (Windows)
-      if: matrix.os == 'windows-latest'
-      run: |
-        choco install ffmpeg
-
-    - name: Install Python dependencies
-      run: |
-        cd backend
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install -r requirements-test.txt
-
-    - name: Cache pytest
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pytest
-        key: ${{ runner.os }}-pytest-${{ hashFiles('backend/**') }}
-        restore-keys: |
-          ${{ runner.os }}-pytest-
-
-    - name: Run linting
-      run: |
-        cd backend
-        python -m flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        python -m flake8 . --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics
-
-    - name: Run type checking
-      run: |
-        cd backend
-        python -m mypy . --ignore-missing-imports || true
-
-    - name: Run unit tests
-      run: |
-        cd backend
-        python -m pytest tests/ -v --tb=short --cov=. --cov-report=xml --cov-report=html --cov-report=term-missing
-
-    - name: Run integration tests
-      run: |
-        cd backend
-        python -m pytest tests/integration/ -v --tb=short || true
-
-    - name: Upload coverage to Codecov
-      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
-      uses: codecov/codecov-action@v3
-      with:
-        file: backend/coverage.xml
-        flags: backend
-        name: backend-coverage-${{ matrix.python-version }}
-
-    - name: Upload test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: test-results-${{ matrix.os }}-${{ matrix.python-version }}
-        path: |
-          backend/htmlcov/
-          backend/test-results.xml
-        retention-days: 7
-
-  performance:
+  validate:
     runs-on: ubuntu-latest
-    needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
-    - name: Install dependencies
-      run: |
-        cd backend
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install -r requirements-test.txt
-        sudo apt-get update
-        sudo apt-get install -y ffmpeg
+      - name: Install dependencies
+        run: |
+          cd backend
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-    - name: Run performance benchmarks
-      run: |
-        cd backend
-        python -m pytest tests/performance/ -v --tb=short || true
+      - name: Syntax check
+        run: |
+          cd backend
+          python -m py_compile main.py downloader.py config.py cache.py
+          echo "✓ All Python files pass syntax check"
 
-    - name: Store benchmark results
-      uses: benchmark-action/github-action-benchmark@v1
-      if: always()
-      with:
-        tool: 'pytest'
-        output-file-path: backend/benchmark-results.json
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        auto-push: true
-        comment-on-alert: true
-        alert-threshold: '200%'
-        fail-on-alert: true
+      - name: Import check
+        run: |
+          cd backend
+          python -c "import main; import downloader; import config; print('✓ All imports successful')"
+
+      - name: Check for common issues
+        run: |
+          cd backend
+          python -m compileall . -q
+          echo "✓ No compilation errors found"

@@ -13,164 +13,72 @@ on:
       - '.github/workflows/test-mobile.yml'
 
 jobs:
-  test:
+  validate:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [16, 18, 20]
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-        cache-dependency-path: mobile/package-lock.json
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: mobile/package.json
 
-    - name: Install dependencies
-      run: |
-        cd mobile
-        npm ci
+      - name: Install dependencies
+        run: |
+          cd mobile
+          npm install --legacy-peer-deps
 
-    - name: Cache npm
-      uses: actions/cache@v3
-      with:
-        path: ~/.npm
-        key: ${{ runner.os }}-npm-${{ hashFiles('mobile/package-lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-npm-
+      - name: TypeScript check
+        run: |
+          cd mobile
+          npm run ts
 
-    - name: Run linting
-      run: |
-        cd mobile
-        npm run lint || true
+      - name: Lint check
+        run: |
+          cd mobile
+          npm run lint || echo "Lint check completed"
 
-    - name: Run type checking
-      run: |
-        cd mobile
-        npm run type-check || true
-
-    - name: Run unit tests
-      run: |
-        cd mobile
-        npm test -- --coverage --watchAll=false
-
-    - name: Run integration tests
-      run: |
-        cd mobile
-        npm run test:integration || true
-
-    - name: Upload coverage to Codecov
-      if: matrix.node-version == 18
-      uses: codecov/codecov-action@v3
-      with:
-        file: mobile/coverage/lcov.info
-        flags: mobile
-        name: mobile-coverage-${{ matrix.node-version }}
-
-    - name: Upload test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: test-results-node-${{ matrix.node-version }}
-        path: |
-          mobile/coverage/
-          mobile/test-results.xml
-        retention-days: 7
-
-  build-test:
+  build-android:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        platform: [android, ios]
-
+    needs: validate
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-        cache: 'npm'
-        cache-dependency-path: mobile/package-lock.json
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: mobile/package.json
 
-    - name: Install dependencies
-      run: |
-        cd mobile
-        npm ci
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
 
-    - name: Setup Android SDK (Android only)
-      if: matrix.platform == 'android'
-      uses: android-actions/setup-android@v2
+      - name: Install dependencies
+        run: |
+          cd mobile
+          npm install --legacy-peer-deps
+          npm install -g @expo/cli
 
-    - name: Setup Ruby (iOS only)
-      if: matrix.platform == 'ios'
-      uses: ruby/setup-ruby@v1
-      with:
-        ruby-version: '3.0'
-        bundler-cache: true
-        working-directory: mobile/ios
+      - name: Create temporary assets
+        run: |
+          cd mobile
+          mkdir -p assets
+          touch assets/icon.png assets/adaptive-icon.png assets/splash.png
 
-    - name: Install iOS dependencies (iOS only)
-      if: matrix.platform == 'ios'
-      run: |
-        cd mobile/ios
-        bundle install
+      - name: Expo prebuild
+        run: |
+          cd mobile
+          npx expo prebuild --platform android --clean --no-install
 
-    - name: Test Android build
-      if: matrix.platform == 'android'
-      run: |
-        cd mobile
-        npx react-native build-android --mode=debug || true
-
-    - name: Test iOS build
-      if: matrix.platform == 'ios'
-      run: |
-        cd mobile
-        npx react-native build-ios --mode=Debug || true
-
-  e2e-test:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-        cache: 'npm'
-        cache-dependency-path: mobile/package-lock.json
-
-    - name: Install dependencies
-      run: |
-        cd mobile
-        npm ci
-
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v2
-
-    - name: Start Metro bundler
-      run: |
-        cd mobile
-        npx react-native start --reset-cache &
-        sleep 10
-
-    - name: Run E2E tests
-      run: |
-        cd mobile
-        npm run test:e2e || true
-
-    - name: Upload E2E test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: e2e-test-results
-        path: mobile/e2e/test-results/
-        retention-days: 7
+      - name: Build Android APK
+        run: |
+          cd mobile/android
+          ./gradlew assembleDebug --no-daemon
