@@ -62,8 +62,9 @@ jobs:
       - name: Compile Inno Setup Installer
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
         with:
-          path: desktop/installer_windows.iss
+          path: installer_windows.iss
           options: /O+ /DMyAppVersion=${{ steps.version.outputs.version }}
+        working-directory: desktop
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -241,16 +242,12 @@ jobs:
   build-backend-docker:
     name: Build Backend Docker Image
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
-      - name: Extract lowercase repo name
-        id: repo
-        run: |
-          echo "name=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -259,12 +256,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract version
-        id: version
+      - name: Extract metadata
+        id: meta
         run: |
-          VERSION=$(cat VERSION | tr -d '[:space:]')
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Building version: $VERSION"
+          echo "repo=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+          echo "version=$(cat VERSION | tr -d '[:space:]')" >> $GITHUB_OUTPUT
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -273,8 +269,8 @@ jobs:
           file: backend/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ steps.repo.outputs.name }}/backend:latest
-            ghcr.io/${{ steps.repo.outputs.name }}/backend:${{ steps.version.outputs.version }}
+            ghcr.io/${{ steps.meta.outputs.repo }}/backend:latest
+            ghcr.io/${{ steps.meta.outputs.repo }}/backend:${{ steps.meta.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
