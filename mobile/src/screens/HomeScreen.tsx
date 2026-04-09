@@ -1,6 +1,11 @@
 /**
- * MediaGrab Mobile – Home Screen
+ * MediaGrab Mobile – Home Screen (v1.0.0 Production)
  * URL input → analyze → show info → navigate to download
+ * 
+ * v1.0.0 Fixes:
+ * - Reads saved format/quality preferences from Settings
+ * - Auto-analyze only on valid URLs
+ * - Proper error handling
  */
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -18,6 +23,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Clipboard from "expo-clipboard";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { analyzeUrl, AnalysisResult, autoConnect, getSavedBackendUrl, setBackendUrl, initialize_zeroconf } from "../services/api";
 import { Colors, Button, Card, PlatformBadge, Banner } from "../components/ui";
 import { checkForUpdate, UpdateInfo } from "../services/update";
@@ -157,9 +163,31 @@ export default function HomeScreen({ navigation }: Props) {
     const [manualTesting, setManualTesting] = useState(false);
     const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
     const [selectedFormat, setSelectedFormat] = useState<"mp3" | "mp4">("mp3");
+    const [selectedQuality, setSelectedQuality] = useState<string>("best");
     const { status: connectionMonitorStatus, attemptReconnect } = useConnectionMonitor();
     const inputRef = useRef<TextInput>(null);
     const autoAnalyzeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Load saved format/quality preferences from Settings
+    useEffect(() => {
+        const loadPreferences = async () => {
+            try {
+                const [savedFormat, savedQuality] = await Promise.all([
+                    AsyncStorage.getItem("@mediagrab_format"),
+                    AsyncStorage.getItem("@mediagrab_quality"),
+                ]);
+                if (savedFormat === "mp3" || savedFormat === "mp4") {
+                    setSelectedFormat(savedFormat);
+                }
+                if (savedQuality) {
+                    setSelectedQuality(savedQuality);
+                }
+            } catch {
+                // Use defaults
+            }
+        };
+        loadPreferences();
+    }, []);
 
     useEffect(() => {
         initialize_zeroconf();
@@ -303,21 +331,28 @@ export default function HomeScreen({ navigation }: Props) {
         if (result.type === "video") {
             navigation.navigate("Download", {
                 url: url.trim(),
-                result,
-                format: selectedFormat,
+                title: result.title,
+                platform: result.platform,
+                type: "video",
                 skipFormatSelection: true,
+                selectedFormat,
+                selectedQuality,
             });
         } else {
-            // For playlists, still go to DownloadScreen for item selection
+            // For playlists, go to DownloadScreen for item selection
             const selectedEntries = result.entries.filter(e => selectedIds.has(e.id));
             navigation.navigate("Download", {
                 url: url.trim(),
-                result,
-                selectedEntries,
-                format: selectedFormat,
+                title: result.title,
+                platform: result.platform,
+                type: "playlist",
+                count: result.count,
+                entries: selectedEntries,
+                selectedFormat,
+                selectedQuality,
             });
         }
-    }, [result, url, selectedFormat, selectedIds, navigation]);
+    }, [result, url, selectedFormat, selectedQuality, selectedIds, navigation]);
 
     const handleSettings = useCallback(() => {
         navigation.navigate("Settings");

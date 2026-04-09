@@ -78,16 +78,22 @@ DEFAULT_DIR = str(Path.home() / "Downloads" / "MediaGrab")
 import sys
 sys.path.append(str(Path(__file__).parent.parent))
 from shared.platform_detection import (
-    detect_platform, 
-    validate_url, 
+    detect_platform,
+    validate_url,
     get_supported_platforms,
     get_platform_patterns
 )
 from shared.yt_dlp_helper import build_yt_dlp_command
 from shared.logger import setup_logger
+from storage_manager import StorageManager
+from cleanup_manager import CleanupManager
 
 # Initialize standardized logger
 logger = setup_logger("desktop")
+
+# Initialize storage and cleanup managers
+storage_mgr = StorageManager()
+cleanup_mgr = CleanupManager()
 
 SUPPORTED_PLATFORMS = get_supported_platforms()
 PLATFORM_PATTERNS = get_platform_patterns()

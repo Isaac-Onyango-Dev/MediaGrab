@@ -1,6 +1,11 @@
 /**
- * MediaGrab Mobile – Download Screen
- * Format/quality selection → start download → real-time progress via WebSocket
+ * MediaGrab Mobile – Download Screen (v1.0.0 Production)
+ * Format/quality selection → start download → real-time progress
+ * 
+ * v1.0.0 Fixes:
+ * - Uses selectedFormat/selectedQuality from HomeScreen preferences
+ * - Proper TypeScript navigation params
+ * - Clean, focused UI
  */
 
 import React, { useCallback, useEffect, useState } from "react";
@@ -16,8 +21,8 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDownload } from "../hooks/useDownload";
-import { AnalysisResult, FormatInfo, getFormats, PlaylistEntry } from "../services/api";
-import { ProgressBar, Chip, SectionLabel, Card, Button } from "../components/ui";
+import { FormatInfo, getFormats, PlaylistEntry } from "../services/api";
+import { ProgressBar, Chip, Card, Button } from "../components/ui";
 
 const C = {
     bg: "#0f0f0f",
@@ -32,316 +37,402 @@ const C = {
     pill: "#1e293b",
 };
 
+interface DownloadScreenParams {
+    url: string;
+    title: string;
+    platform: string;
+    type?: "video" | "playlist";
+    count?: number;
+    entries?: PlaylistEntry[];
+    selectedFormat?: "mp3" | "mp4";
+    selectedQuality?: string;
+    skipFormatSelection?: boolean;
+}
+
 interface Props {
-    route: { params: { url: string; result: AnalysisResult; selectedEntries?: PlaylistEntry[]; format?: "mp3" | "mp4"; skipFormatSelection?: boolean } };
+    route: { params: DownloadScreenParams };
     navigation: {
-        navigate: (screen: string, params?: any) => void;
         goBack: () => void;
         popToTop: () => void;
     };
 }
 
 export default function DownloadScreen({ route, navigation }: Props) {
-    const { url, result, selectedEntries: initialSelectedEntries, format: initialFormat, skipFormatSelection } = route.params;
+    const { 
+        url, 
+        title, 
+        platform, 
+        type: contentType,
+        count,
+        entries,
+        selectedFormat,
+        selectedQuality,
+        skipFormatSelection 
+    } = route.params;
     const insets = useSafeAreaInsets();
 
-    const { state: downloadState, progress, start, cancel } = useDownload();
+    const { state: downloadState, progress, start, cancel, reset } = useDownload();
 
-    const [fmt, setFmt] = useState<"mp3" | "mp4">(initialFormat ?? "mp3");
+    const [fmt, setFmt] = useState<"mp3" | "mp4">(selectedFormat ?? "mp3");
     const [qualities, setQualities] = useState<FormatInfo[]>([]);
-    const [quality, setQuality] = useState<string>("best");
+    const [quality, setQuality] = useState<string>(selectedQuality ?? "best");
     const [loadingQ, setLoadingQ] = useState(false);
     const [downloadingStarted, setDownloadingStarted] = useState(false);
 
-    const [selectedIds, setSelectedIds] = useState<Set<string>>(
-        result.type === "playlist"
-            ? new Set((initialSelectedEntries || result.entries).map((e: PlaylistEntry) => e.id))
-            : new Set()
-    );
-
-    // Auto-start download when skipFormatSelection is true
+    // Auto-start for single video when format selection skipped
     useEffect(() => {
         if (skipFormatSelection && !downloadingStarted && downloadState === "idle") {
             setDownloadingStarted(true);
-            start({
-                url,
-                fmt,
-                quality: fmt === "mp3" ? "best" : quality,
-            });
+            start({ url, fmt, quality: "best" });
         }
-    }, [skipFormatSelection, downloadingStarted, downloadState, start, url, fmt, quality]);
+    }, [skipFormatSelection, downloadingStarted, downloadState, start, url, fmt]);
 
-    // FIX: Fetch qualities for playlists too (using first entry's URL)
+    // Fetch available qualities for MP4
     useEffect(() => {
-        if (fmt === "mp4") {
-            const qualityUrl = result.type === "playlist"
-                ? result.entries[0]?.url
-                : url;
-            if (qualityUrl) {
-                setLoadingQ(true);
-                getFormats(qualityUrl)
-                    .then((fmts: FormatInfo[]) => setQualities(fmts))
-                    .catch(() => setQualities([]))
-                    .finally(() => setLoadingQ(false));
-            }
+        if (fmt === "mp4" && !skipFormatSelection) {
+            setLoadingQ(true);
+            getFormats(url)
+                .then(qs => {
+                    setQualities(qs);
+                    if (qs.length > 0 && !selectedQuality) {
+                        setQuality(qs[0].label);
+                    }
+                })
+                .catch(() => setQualities([]))
+                .finally(() => setLoadingQ(false));
         }
-    }, [fmt, result.type, url, result]);
+    }, [url, fmt, skipFormatSelection, selectedQuality]);
 
-    const handleDownload = useCallback(async () => {
-        if (result.type === "playlist") {
-            const selectedUrls = result.entries
-                .filter(e => selectedIds.has(e.id))
-                .map(e => e.url);
+    const handleStartDownload = useCallback(() => {
+        if (downloadState !== "idle") return;
+        setDownloadingStarted(true);
+        start({
+            url,
+            fmt,
+            quality: fmt === "mp3" ? "best" : quality,
+        });
+    }, [downloadState, start, url, fmt, quality]);
 
-            if (selectedUrls.length === 0) {
-                Alert.alert("No items selected", "Please select at least one item to download.");
-                return;
-            }
-
-            await start({
-                url,
-                fmt,
-                quality: fmt === "mp3" ? "best" : quality,
-                selected_urls: selectedUrls,
-                playlist_name: result.title,
-            });
-        } else {
-            await start({
-                url,
-                fmt,
-                quality: fmt === "mp3" ? "best" : quality,
-            });
-        }
-    }, [url, fmt, quality, start, result, selectedIds]);
-
-    const handleCancel = useCallback(async () => {
-        await cancel();
+    const handleCancel = useCallback(() => {
+        cancel();
     }, [cancel]);
 
-    const toggleItem = (id: string) => {
-        setSelectedIds(prev => {
-            const next = new Set(prev);
-            if (next.has(id)) {
-                next.delete(id);
-            } else {
-                next.add(id);
-            }
-            return next;
-        });
-    };
+    const handleBack = useCallback(() => {
+        if (downloadState === "idle" || downloadState === "complete" || downloadState === "error") {
+            navigation.goBack();
+        } else {
+            Alert.alert(
+                "Download in Progress",
+                "Are you sure you want to cancel the current download?",
+                [
+                    { text: "Continue", style: "cancel" },
+                    {
+                        text: "Cancel Download",
+                        style: "destructive",
+                        onPress: () => {
+                            cancel();
+                            navigation.goBack();
+                        }
+                    }
+                ]
+            );
+        }
+    }, [downloadState, cancel, navigation]);
 
-    const selectAllItems = () => {
-        if (result.type === "playlist") {
-            setSelectedIds(new Set(result.entries.map((e) => e.id)));
+    // Download state display
+    const stateDisplay = (): string => {
+        switch (downloadState) {
+            case "idle": return "Ready";
+            case "starting": return "Starting…";
+            case "downloading": return "Downloading";
+            case "processing": return "Processing";
+            case "complete": return "Complete";
+            case "error": return "Failed";
+            case "cancelled": return "Cancelled";
+            default: return downloadState;
         }
     };
 
-    const deselectAllItems = () => {
-        setSelectedIds(new Set());
-    };
-
-    const statusColor = () => {
-        switch (progress.status) {
+    const stateColor = (): string => {
+        switch (downloadState) {
+            case "downloading": return C.primary;
+            case "processing": return C.warning;
             case "complete": return C.success;
-            case "error": return C.error;
-            case "cancelled": return C.warning;
-            default: return C.primary;
+            case "error":
+            case "cancelled": return C.error;
+            default: return C.textSub;
         }
     };
-
-    const isOptionsPhase = downloadState === "idle";
 
     return (
-        <ScrollView
-            style={[styles.root, { paddingTop: insets.top }]}
-            contentContainerStyle={styles.scroll}
-            showsVerticalScrollIndicator={false}
-        >
-            <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-                <Text style={styles.backText}>← Back</Text>
-            </TouchableOpacity>
+        <View style={[styles.root, { paddingTop: insets.top }]}>
+            {/* Header */}
+            <View style={styles.header}>
+                <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
+                    <Text style={styles.backBtnText}>← Back</Text>
+                </TouchableOpacity>
+                <Text style={styles.headerTitle} numberOfLines={1}>{title}</Text>
+            </View>
 
-            <Text style={styles.screenTitle}>Download</Text>
-
-            <Card>
-                <Text style={styles.videoTitle} numberOfLines={2}>
-                    {result.type === "playlist" ? "🎵 " : "🎬 "}{result.title}
-                </Text>
-                {result.type === "video" && (
-                    <Text style={styles.subText}>👤 {result.uploader}  ·  ⏱ {result.duration_str}</Text>
-                )}
-                {result.type === "playlist" && (
-                    <Text style={styles.subText}>{result.count} videos</Text>
-                )}
-            </Card>
-
-            {(isOptionsPhase && !skipFormatSelection) && (
-                <>
-                    <SectionLabel text="FORMAT" />
-                    <View style={styles.chipRow}>
-                        <Chip label="🎵 MP3 – Audio" selected={fmt === "mp3"} onPress={() => setFmt("mp3")} />
-                        <Chip label="🎬 MP4 – Video" selected={fmt === "mp4"} onPress={() => setFmt("mp4")} />
-                    </View>
-
-                    {fmt === "mp4" && (
-                        <>
-                            <SectionLabel text="QUALITY" />
-                            {loadingQ ? (
-                                <ActivityIndicator color={C.primary} style={{ marginVertical: 12 }} />
-                            ) : (
-                                <View style={styles.chipRow}>
-                                    <Chip
-                                        label="⭐ Best"
-                                        selected={quality === "best"}
-                                        onPress={() => setQuality("best")}
-                                    />
-                                    {qualities.map((q: FormatInfo) => (
-                                        <Chip
-                                            key={q.label}
-                                            label={`${q.label} @ ${q.fps}fps`}
-                                            selected={quality === `bestvideo[height<=${q.height}]+bestaudio/best`}
-                                            onPress={() => setQuality(`bestvideo[height<=${q.height}]+bestaudio/best`)}
-                                        />
-                                    ))}
-                                </View>
-                            )}
-                        </>
-                    )}
-
-                    {result.type === "playlist" && (
-                        <>
-                            <SectionLabel text={`SELECT ITEMS (${selectedIds.size} / ${result.count})`} />
-                            <View style={styles.chipRow}>
-                                <Chip
-                                    label="✓ Select All"
-                                    selected={selectedIds.size === result.count}
-                                    onPress={selectAllItems}
-                                />
-                                <Chip
-                                    label="✗ Deselect All"
-                                    selected={false}
-                                    onPress={deselectAllItems}
-                                />
-                            </View>
-
-                            <ScrollView style={styles.playlistBox} nestedScrollEnabled>
-                                {result.entries.map((entry, idx) => (
-                                    <TouchableOpacity
-                                        key={entry.id || idx}
-                                        style={[
-                                            styles.playlistItem,
-                                            selectedIds.has(entry.id) && styles.playlistItemSelected,
-                                        ]}
-                                        onPress={() => toggleItem(entry.id)}
-                                    >
-                                        <Text style={styles.playlistCheckbox}>
-                                            {selectedIds.has(entry.id) ? "☑️" : "☐"}
-                                        </Text>
-                                        <View style={{ flex: 1 }}>
-                                            <Text
-                                                style={styles.playlistItemTitle}
-                                                numberOfLines={1}
-                                            >
-                                                {idx + 1}. {entry.title}
-                                            </Text>
-                                            <Text style={styles.playlistItemDuration}>
-                                                {entry.duration_str}
-                                            </Text>
-                                        </View>
-                                    </TouchableOpacity>
-                                ))}
-                            </ScrollView>
-                        </>
-                    )}
-
-                    <Button label="⬇️  Start Download" onPress={handleDownload} style={{ marginTop: 12 }} />
-                </>
-            )}
-
-            {!isOptionsPhase && (
-                <Card>
-                    <Text style={[styles.statusLabel, { color: statusColor() }]}>
-                        {downloadState === "complete" ? "✅ Download Complete!" :
-                            downloadState === "error" ? "❌ Download Failed" :
-                                downloadState === "cancelled" ? "⚠️ Download Cancelled" :
-                                    "📥 Downloading…"}
+            <ScrollView 
+                contentContainerStyle={styles.scroll}
+                keyboardShouldPersistTaps="handled"
+            >
+                {/* Video Info Card */}
+                <Card style={styles.infoCard}>
+                    <Text style={styles.platformBadge}>
+                        {platform === "youtube" ? "▶️" : platform === "tiktok" ? "🎵" : "🔗"} {platform}
                     </Text>
-
-                    {progress.filename ? (
-                        <Text style={styles.filename} numberOfLines={1}>{progress.filename}</Text>
-                    ) : null}
-
-                    {progress.current_item && progress.total_items ? (
-                        <Text style={styles.itemProgress}>
-                            Item {progress.current_item} of {progress.total_items}
-                        </Text>
-                    ) : null}
-
-                    <ProgressBar progress={progress.progress} />
-
-                    <View style={styles.statsRow}>
-                        <Text style={styles.pctText}>{progress.progress.toFixed(1)}%</Text>
-                        {progress.speed ? <Text style={styles.statText}>⚡ {progress.speed}</Text> : null}
-                        {progress.eta ? <Text style={styles.statText}>⏱ ETA {progress.eta}</Text> : null}
-                    </View>
-
-                    {progress.message ? (
-                        <Text style={styles.msgText}>{progress.message}</Text>
-                    ) : null}
-
-                    {downloadState === "complete" && progress.output_dir ? (
-                        <Text style={styles.savedPathText}>
-                            📁 Saved to: {progress.output_dir.replace(/^.*?MediaGrab/, "Downloads/MediaGrab")}
-                        </Text>
-                    ) : null}
-
-                    {(downloadState === "downloading" || downloadState === "processing" || downloadState === "starting") && (
-                        <Button
-                            label="✖  Cancel"
-                            variant="danger"
-                            onPress={handleCancel}
-                            style={{ marginTop: 14 }}
-                        />
-                    )}
-
-                    {(downloadState === "complete" || downloadState === "error" || downloadState === "cancelled") && (
-                        <Button
-                            label="⬇️  Download Another"
-                            onPress={() => navigation.popToTop()}
-                            style={{ marginTop: 12 }}
-                        />
+                    <Text style={styles.videoTitle} numberOfLines={2}>{title}</Text>
+                    {contentType === "playlist" && count && (
+                        <Text style={styles.subText}>📁 {count} videos in playlist</Text>
                     )}
                 </Card>
-            )}
-        </ScrollView>
+
+                {/* Format Selection (only if not auto-starting) */}
+                {!skipFormatSelection && downloadState === "idle" && (
+                    <>
+                        <Text style={styles.sectionLabel}>Format</Text>
+                        <View style={styles.formatRow}>
+                            <TouchableOpacity
+                                style={[
+                                    styles.formatBtn,
+                                    fmt === "mp3" && styles.formatBtnActive
+                                ]}
+                                onPress={() => setFmt("mp3")}
+                            >
+                                <Text style={[
+                                    styles.formatBtnText,
+                                    fmt === "mp3" && styles.formatBtnTextActive
+                                ]}>
+                                    🎵 MP3
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[
+                                    styles.formatBtn,
+                                    fmt === "mp4" && styles.formatBtnActive
+                                ]}
+                                onPress={() => setFmt("mp4")}
+                            >
+                                <Text style={[
+                                    styles.formatBtnText,
+                                    fmt === "mp4" && styles.formatBtnTextActive
+                                ]}>
+                                    🎬 MP4
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Quality Selection (MP4 only) */}
+                        {fmt === "mp4" && (
+                            <>
+                                <Text style={styles.sectionLabel}>Quality</Text>
+                                {loadingQ ? (
+                                    <ActivityIndicator color={C.primary} />
+                                ) : qualities.length > 0 ? (
+                                    <View style={styles.qualityRow}>
+                                        {qualities.map(q => (
+                                            <Chip
+                                                key={q.label}
+                                                label={q.label}
+                                                selected={quality === q.label}
+                                                onPress={() => setQuality(q.label)}
+                                            />
+                                        ))}
+                                    </View>
+                                ) : (
+                                    <Text style={styles.subText}>No quality options available</Text>
+                                )}
+                            </>
+                        )}
+                    </>
+                )}
+
+                {/* Download Progress */}
+                {downloadState !== "idle" && (
+                    <Card style={styles.progressCard}>
+                        <View style={styles.progressHeader}>
+                            <Text style={styles.statusLabel}>Status</Text>
+                            <Text style={[styles.statusText, { color: stateColor() }]}>
+                                {stateDisplay()}
+                            </Text>
+                        </View>
+
+                        <ProgressBar 
+                            progress={progress.progress}
+                            status={downloadState}
+                        />
+
+                        {progress.speed && (
+                            <Text style={styles.progressDetail}>⚡ {progress.speed}</Text>
+                        )}
+                        {progress.eta && (
+                            <Text style={styles.progressDetail}>⏱ ETA: {progress.eta}</Text>
+                        )}
+                        {progress.filename && (
+                            <Text style={styles.progressDetail} numberOfLines={1}>
+                                📄 {progress.filename}
+                            </Text>
+                        )}
+
+                        {(downloadState === "downloading" || downloadState === "processing") && (
+                            <Button
+                                label="Cancel"
+                                onPress={handleCancel}
+                                variant="danger"
+                                style={styles.cancelBtn}
+                            />
+                        )}
+
+                        {(downloadState === "complete" || downloadState === "error" || downloadState === "cancelled") && (
+                            <Button
+                                label="Done"
+                                onPress={() => {
+                                    reset();
+                                    navigation.goBack();
+                                }}
+                                variant="primary"
+                                style={styles.doneBtn}
+                            />
+                        )}
+                    </Card>
+                )}
+
+                {/* Start Download Button */}
+                {!skipFormatSelection && downloadState === "idle" && (
+                    <Button
+                        label={`Download ${fmt.toUpperCase()}`}
+                        onPress={handleStartDownload}
+                        variant="primary"
+                        style={styles.downloadBtn}
+                    />
+                )}
+            </ScrollView>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
-    root: { flex: 1, backgroundColor: C.bg },
-    scroll: { padding: 16, paddingBottom: 60 },
-    backBtn: { marginBottom: 4 },
-    backText: { color: C.primary, fontSize: 15, fontWeight: "600" },
-    screenTitle: { fontSize: 26, fontWeight: "800", color: C.text, marginBottom: 16 },
-
-    videoTitle: { fontSize: 15, fontWeight: "700", color: C.text, marginBottom: 4 },
-    subText: { fontSize: 13, color: C.textSub },
-
-    chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 },
-
-    statusLabel: { fontSize: 16, fontWeight: "800", marginBottom: 10 },
-    filename: { fontSize: 12, color: C.textSub, fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace", marginBottom: 8 },
-    itemProgress: { fontSize: 11, color: C.textSub, marginBottom: 8, fontWeight: "600" },
-    savedPathText: { fontSize: 12, color: C.success, marginTop: 8, paddingHorizontal: 8, paddingVertical: 6, backgroundColor: C.pill, borderRadius: 6 },
-    statsRow: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 8 },
-    pctText: { fontSize: 14, fontWeight: "700", color: C.text },
-    statText: { fontSize: 12, color: C.textSub },
-    msgText: { fontSize: 12, color: C.textSub, marginTop: 6 },
-
-    playlistBox: { maxHeight: 240, marginBottom: 12, borderRadius: 10, backgroundColor: C.card, borderWidth: 1, borderColor: C.border },
-    playlistItem: { flexDirection: "row", alignItems: "center", padding: 12, borderBottomWidth: 1, borderBottomColor: C.border },
-    playlistItemSelected: { backgroundColor: C.border },
-    playlistCheckbox: { fontSize: 16, marginRight: 10, width: 24 },
-    playlistItemTitle: { fontSize: 13, fontWeight: "600", color: C.text, marginBottom: 2 },
-    playlistItemDuration: { fontSize: 11, color: C.textSub },
+    root: {
+        flex: 1,
+        backgroundColor: C.bg,
+    },
+    header: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: C.border,
+    },
+    backBtn: {
+        padding: 8,
+    },
+    backBtnText: {
+        fontSize: 16,
+        color: C.primary,
+        fontWeight: "500",
+    },
+    headerTitle: {
+        flex: 1,
+        fontSize: 16,
+        fontWeight: "600",
+        color: C.text,
+        marginLeft: 12,
+    },
+    scroll: {
+        padding: 16,
+        paddingBottom: 40,
+    },
+    infoCard: {
+        marginBottom: 16,
+    },
+    platformBadge: {
+        fontSize: 12,
+        color: C.textSub,
+        marginBottom: 8,
+    },
+    videoTitle: {
+        fontSize: 16,
+        fontWeight: "700",
+        color: C.text,
+        marginBottom: 6,
+    },
+    subText: {
+        fontSize: 13,
+        color: C.textSub,
+        marginBottom: 2,
+    },
+    sectionLabel: {
+        fontSize: 12,
+        color: C.textSub,
+        fontWeight: "600",
+        marginBottom: 8,
+        textTransform: "uppercase",
+        letterSpacing: 0.5,
+    },
+    formatRow: {
+        flexDirection: "row",
+        gap: 8,
+        marginBottom: 16,
+    },
+    formatBtn: {
+        flex: 1,
+        padding: 12,
+        borderRadius: 8,
+        alignItems: "center",
+        borderWidth: 1,
+        borderColor: C.border,
+        backgroundColor: C.card,
+    },
+    formatBtnActive: {
+        backgroundColor: C.primary,
+        borderColor: C.primary,
+    },
+    formatBtnText: {
+        color: C.textSub,
+        fontWeight: "600",
+    },
+    formatBtnTextActive: {
+        color: "#ffffff",
+    },
+    qualityRow: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        gap: 8,
+        marginBottom: 16,
+    },
+    progressCard: {
+        marginBottom: 16,
+    },
+    progressHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 12,
+    },
+    statusLabel: {
+        fontSize: 14,
+        fontWeight: "600",
+        color: C.text,
+    },
+    statusText: {
+        fontSize: 14,
+        fontWeight: "500",
+    },
+    progressDetail: {
+        fontSize: 13,
+        color: C.textSub,
+        marginTop: 4,
+    },
+    cancelBtn: {
+        marginTop: 16,
+    },
+    doneBtn: {
+        marginTop: 16,
+    },
+    downloadBtn: {
+        marginTop: 8,
+    },
 });

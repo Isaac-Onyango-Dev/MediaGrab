@@ -52,11 +52,47 @@ export default function SettingsScreen({ navigation }: {
             Alert.alert("Invalid URL", "Server URL must start with http:// or https://");
             return;
         }
+        
+        // Test the URL before saving
+        try {
+            const resp = await fetch(`${url}/health`, { method: "GET" });
+            if (!resp.ok) {
+                Alert.alert(
+                    "Connection Failed",
+                    `Server responded with status ${resp.status}. Please check the URL and ensure the backend is running.`,
+                    [{ text: "OK" }]
+                );
+                return;
+            }
+        } catch {
+            Alert.alert(
+                "Connection Failed",
+                "Could not reach the server. Please check:\n\n1. The backend is running on your computer\n2. The URL is correct\n3. Your phone and computer are on the same network",
+                [
+                    { text: "Cancel", style: "cancel" },
+                    { text: "Save Anyway", onPress: async () => {
+                        await setBackendUrl(url);
+                        await setApiKey(apiKey.trim());
+                        await AsyncStorage.multiSet([
+                            ["@mediagrab_format", format],
+                            ["@mediagrab_quality", quality],
+                        ]);
+                        Alert.alert("Saved (Untested)", "Settings saved without connection test.");
+                    }},
+                ]
+            );
+            return;
+        }
+        
+        // Connection successful - save settings
         await setBackendUrl(url);
         await setApiKey(apiKey.trim());
-        await AsyncStorage.setItem("@mediagrab_format", format);
-        await AsyncStorage.setItem("@mediagrab_quality", quality);
-        Alert.alert("Saved", "Settings updated.");
+        await AsyncStorage.multiSet([
+            ["@mediagrab_format", format],
+            ["@mediagrab_quality", quality],
+        ]);
+        setStatus("ok");
+        Alert.alert("✅ Saved", "Settings updated. Connection verified.");
     }, [serverUrl, apiKey, format, quality]);
 
     const handleTest = useCallback(async () => {

@@ -1,10 +1,15 @@
 /**
- * MediaGrab Mobile – useDownload hook
+ * MediaGrab Mobile - useDownload Hook (Fixed v1.0.0)
  * Handles the full download lifecycle:
  *   start → WS progress (polling fallback) → complete/error/cancel
+ * 
+ * Fixed in v1.0.0:
+ * - Resolved stale closure bugs in WebSocket fallback
+ * - Added download timeout (30 minutes)
+ * - Proper state management with refs
  */
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState, useEffect } from "react";
 import {
   cancelDownload,
   createProgressSocket,
@@ -23,6 +28,8 @@ export type DownloadState =
   | "error"
   | "cancelled";
 
+const DOWNLOAD_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+
 interface UseDownloadResult {
   state: DownloadState;
   progress: ProgressInfo;
@@ -36,10 +43,10 @@ interface StartParams {
   url: string;
   fmt: string;
   quality: string;
-  output_dir?: string;  // Optional - backend has defaults
-  playlist_items?: number[];  // Deprecated (indices)
-  selected_urls?: string[];   // New (individual URLs)
-  playlist_name?: string;     // New (for folder naming)
+  output_dir?: string;
+  playlist_items?: number[];
+  selected_urls?: string[];
+  playlist_name?: string;
 }
 
 const DEFAULT_PROGRESS: ProgressInfo = {
@@ -56,9 +63,17 @@ export function useDownload(): UseDownloadResult {
   const [progress, setProgress] = useState<ProgressInfo>(DEFAULT_PROGRESS);
   const [taskId, setTaskId] = useState<string | null>(null);
 
+  // Use refs for mutable values to avoid stale closures
+  const stateRef = useRef<DownloadState>("idle");
   const pollerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const cleanupWsRef = useRef<(() => void) | null>(null);
   const cancelledRef = useRef(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Keep stateRef in sync
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   const stopTask = useCallback(() => {
     if (pollerRef.current) {
@@ -69,9 +84,16 @@ export function useDownload(): UseDownloadResult {
       cleanupWsRef.current();
       cleanupWsRef.current = null;
     }
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
   }, []);
 
   const handleUpdate = useCallback((data: ProgressInfo) => {
+    // Use ref to check current state, not captured state
+    if (cancelledRef.current) return;
+
     setProgress(data);
     if (data.status === "downloading") setState("downloading");
     else if (data.status === "processing") setState("processing");
@@ -88,8 +110,14 @@ export function useDownload(): UseDownloadResult {
   }, [stopTask]);
 
   const startFallbackPoller = useCallback((id: string) => {
+    if (pollerRef.current) return; // Already polling
+
     pollerRef.current = setInterval(async () => {
-      if (cancelledRef.current) {
+      // Check ref instead of captured state
+      if (cancelledRef.current || 
+          stateRef.current === "complete" || 
+          stateRef.current === "error" || 
+          stateRef.current === "cancelled") {
         stopTask();
         return;
       }
@@ -102,10 +130,11 @@ export function useDownload(): UseDownloadResult {
     }, 1000);
   }, [stopTask, handleUpdate]);
 
-  // ── Public API ──────────────────────────────────────────────────────
-
   const start = useCallback(async (params: StartParams) => {
+    // Reset all refs and state
     cancelledRef.current = false;
+    stopTask();
+    
     setState("starting");
     setProgress(DEFAULT_PROGRESS);
 
@@ -122,12 +151,13 @@ export function useDownload(): UseDownloadResult {
       } else {
         id = await startDownload(params);
       }
+      
       setTaskId(id);
       setState("downloading");
 
       let wsEstablished = false;
 
-      // Try WebSocket first
+      // Try WebSocket first - use function that checks ref, not captured state
       cleanupWsRef.current = createProgressSocket(
         id,
         (data: ProgressInfo) => {
@@ -135,19 +165,37 @@ export function useDownload(): UseDownloadResult {
           handleUpdate(data);
         },
         () => {
-          // If WS closes completely but we aren't done yet, fallback to polling
-          if (!cancelledRef.current && state === "downloading" && wsEstablished) {
+          // Fixed: Check ref instead of captured state variable
+          if (!cancelledRef.current && 
+              stateRef.current === "downloading" && 
+              wsEstablished) {
             startFallbackPoller(id);
           }
         }
       );
 
       // If WS doesn't get established within 3s, start polling
-      setTimeout(() => {
-        if (!wsEstablished && !cancelledRef.current && state === "downloading") {
+      // Fixed: Check ref instead of captured state
+      timeoutRef.current = setTimeout(() => {
+        if (!wsEstablished && 
+            !cancelledRef.current && 
+            stateRef.current === "downloading") {
           startFallbackPoller(id);
         }
       }, 3000);
+
+      // Add download timeout
+      timeoutRef.current = setTimeout(() => {
+        if (stateRef.current === "downloading" && !cancelledRef.current) {
+          setState("error");
+          setProgress({
+            ...DEFAULT_PROGRESS,
+            status: "error",
+            message: "Download timed out after 30 minutes",
+          });
+          stopTask();
+        }
+      }, DOWNLOAD_TIMEOUT_MS);
 
     } catch (err: any) {
       setState("error");
@@ -157,7 +205,7 @@ export function useDownload(): UseDownloadResult {
         message: err?.message ?? "Failed to start download",
       });
     }
-  }, [startFallbackPoller, handleUpdate, state]);
+  }, [startFallbackPoller, handleUpdate, stopTask]);
 
   const cancel = useCallback(async () => {
     cancelledRef.current = true;
@@ -166,7 +214,11 @@ export function useDownload(): UseDownloadResult {
       try { await cancelDownload(taskId); } catch { }
     }
     setState("cancelled");
-    setProgress((p: ProgressInfo) => ({ ...p, status: "cancelled", message: "Cancelled by user" }));
+    setProgress((p: ProgressInfo) => ({ 
+      ...p, 
+      status: "cancelled", 
+      message: "Cancelled by user" 
+    }));
   }, [taskId, stopTask]);
 
   const reset = useCallback(() => {
