@@ -71,10 +71,10 @@ export default function App() {
 
   const [downloadInfo] = useState(() => {
     const ua = typeof window !== 'undefined' ? window.navigator.userAgent.toLowerCase() : '';
-    const releaseBase = "https://github.com/Isaac-Onyango-Dev/MediaGrab/releases/latest/download/";
+    const releaseBase = "https://github.com/Isaac-Onyango-Dev/MediaGrab/releases/download/v1.0.0/";
 
     if (ua.includes("win")) {
-      return { label: "Download for Windows", link: `${releaseBase}MediaGrab-Windows.exe` };
+      return { label: "Download for Windows", link: `${releaseBase}MediaGrab-1.0.0-Setup.exe` };
     } else if (ua.includes("mac")) {
       return { label: "Download for macOS", link: `${releaseBase}MediaGrab-macOS.dmg` };
     } else if (ua.includes("android")) {
@@ -83,7 +83,7 @@ export default function App() {
       return { label: "Download for Linux", link: `${releaseBase}MediaGrab-Linux` };
     }
 
-    return { label: "Initialize Download", link: "#releases" };
+    return { label: "View All Downloads", link: "https://github.com/Isaac-Onyango-Dev/MediaGrab/releases" };
   });
 
   const shareIcons = [
@@ -247,7 +247,7 @@ export default function App() {
               <p className="text-sm text-slate-500 mb-3">Windows 10 / 11 · 64-bit</p>
               <span className="inline-block text-xs bg-slate-800 text-slate-400 px-2 py-1 rounded mb-4">.exe · ~75 MB</span>
               <a
-                href="https://github.com/Isaac-Onyango-Dev/MediaGrab/releases/latest/download/MediaGrab-Windows.exe"
+                href="https://github.com/Isaac-Onyango-Dev/MediaGrab/releases/download/v1.0.0/MediaGrab-1.0.0-Setup.exe"
                 className="block w-full bg-blue-500 text-white text-sm font-semibold py-2.5 rounded text-center hover:bg-blue-600 transition-all mb-2"
               >
                 Download for Windows
@@ -276,7 +276,7 @@ export default function App() {
               <p className="text-sm text-slate-500 mb-3">macOS 11 Big Sur and later</p>
               <span className="inline-block text-xs bg-slate-800 text-slate-400 px-2 py-1 rounded mb-4">.dmg · ~80 MB</span>
               <a
-                href="https://github.com/Isaac-Onyango-Dev/MediaGrab/releases/latest/download/MediaGrab-macOS.dmg"
+                href="https://github.com/Isaac-Onyango-Dev/MediaGrab/releases/download/v1.0.0/MediaGrab-macOS.dmg"
                 className="block w-full bg-blue-500 text-white text-sm font-semibold py-2.5 rounded text-center hover:bg-blue-600 transition-all mb-2"
               >
                 Download for macOS
@@ -305,7 +305,7 @@ export default function App() {
               <p className="text-sm text-slate-500 mb-3">Ubuntu 20.04 · Debian · Fedora</p>
               <span className="inline-block text-xs bg-slate-800 text-slate-400 px-2 py-1 rounded mb-4">binary · ~65 MB</span>
               <a
-                href="https://github.com/Isaac-Onyango-Dev/MediaGrab/releases/latest/download/MediaGrab-Linux"
+                href="https://github.com/Isaac-Onyango-Dev/MediaGrab/releases/download/v1.0.0/MediaGrab-Linux"
                 className="block w-full bg-blue-500 text-white text-sm font-semibold py-2.5 rounded text-center hover:bg-blue-600 transition-all mb-2"
               >
                 Download for Linux
@@ -334,7 +334,7 @@ export default function App() {
               <p className="text-sm text-slate-500 mb-3">Android 7.0 (API 24) and later</p>
               <span className="inline-block text-xs bg-slate-800 text-slate-400 px-2 py-1 rounded mb-4">.apk · sideload</span>
               <a
-                href="https://github.com/Isaac-Onyango-Dev/MediaGrab/releases/latest/download/MediaGrab-Android.apk"
+                href="https://github.com/Isaac-Onyango-Dev/MediaGrab/releases/download/v1.0.0/MediaGrab-Android.apk"
                 className="block w-full bg-blue-500 text-white text-sm font-semibold py-2.5 rounded text-center hover:bg-blue-600 transition-all mb-2"
               >
                 Download APK
