@@ -259,10 +259,7 @@ export default function DownloadScreen({ route, navigation }: Props) {
                             </Text>
                         </View>
 
-                        <ProgressBar 
-                            progress={progress.progress}
-                            status={downloadState}
-                        />
+                        <ProgressBar progress={progress.progress} />
 
                         {progress.speed && (
                             <Text style={styles.progressDetail}>⚡ {progress.speed}</Text>

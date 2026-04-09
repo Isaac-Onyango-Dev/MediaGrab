@@ -109,7 +109,7 @@ export default function App() {
             }}
           >
             <Stack.Screen name="Home"     component={HomeScreen}     />
-            <Stack.Screen name="Download" component={DownloadScreen} />
+            <Stack.Screen name="Download" component={DownloadScreen as React.ComponentType<any>} />
             <Stack.Screen name="Settings" component={SettingsScreen} />
           </Stack.Navigator>
         </NavigationContainer>
