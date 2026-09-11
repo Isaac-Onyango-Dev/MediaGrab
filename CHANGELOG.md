@@ -73,8 +73,25 @@ Audit and repair release. Every item below is a defect found in 1.0.0.
   fired before a server was connected.
 - Requests now send a stable `X-Client-ID` instead of relying on IP fallback.
 
-### Website
+### New look
 
+- **New app mark**: a download arrow caught by a pair of brackets, in the brand
+  blue-to-violet gradient. It replaces the unrelated stock glyph that shipped as
+  the favicon and the plain "M" tile on the site. Rendered from one source
+  geometry into every size the project needs: site favicon and logo, Windows
+  `.ico`, macOS `.icns`, and the Android icon, adaptive icon and splash, which
+  was previously a 67-byte placeholder.
+- The built Windows executable had no icon at all, and the desktop window used
+  the default Tk icon. Both now carry the app mark.
+- **Redesigned download page.** The platform cards were plain slate boxes that
+  ignored the site's own glass styling. They are now one data-driven grid with
+  per-platform accents, the exact asset filename and size, a highlighted card
+  for the visitor's own OS, and a link to the tarball for Linux users who do not
+  want the AppImage.
+- **Added a "What's new" section** summarising this release, plus a version pill
+  in the nav and a release ribbon in the hero, both linking to the changelog.
+- Added Open Graph and Twitter card metadata, an SVG favicon, and a theme
+  colour, so shared links preview properly.
 - Download links pointed at hardcoded v1.0.0 assets, and the Linux link pointed
   at a file the release workflow never produces. Asset URLs are now built from
   the repo `VERSION` at build time and use the real asset names.

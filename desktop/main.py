@@ -701,6 +701,7 @@ class MediaGrabApp(ctk.CTk):
         ctk.set_appearance_mode(self._cfg.get("theme", "dark"))
         ctk.set_default_color_theme("blue")
         self.title(f"{APP_NAME} {APP_VERSION}")
+        self._apply_window_icon()
         self.geometry("960x780")
         self.minsize(820, 640)
         self._center()
@@ -1335,6 +1336,25 @@ class MediaGrabApp(ctk.CTk):
         dialog.geometry(f"+{x}+{y}")
 
     # ── Misc ──────────────────────────────────
+
+    def _apply_window_icon(self) -> None:
+        """Title-bar and taskbar icon, from the bundled assets folder."""
+        base = Path(getattr(sys, "_MEIPASS", Path(__file__).parent))
+        try:
+            if sys.platform == "win32":
+                ico = base / "assets" / "icon.ico"
+                if ico.exists():
+                    self.iconbitmap(str(ico))
+                    return
+            png = base / "assets" / "icon.png"
+            if png.exists():
+                import tkinter as tk
+                # Held on the instance: Tk drops images that lose their last
+                # Python reference.
+                self._icon_photo = tk.PhotoImage(file=str(png))
+                self.iconphoto(True, self._icon_photo)
+        except Exception as e:
+            logger.debug(f"Could not set window icon: {e}")
 
     def _center(self):
         self.update_idletasks()

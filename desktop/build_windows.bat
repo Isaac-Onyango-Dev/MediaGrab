@@ -17,7 +17,7 @@ echo.
 echo [2/5] Building PyInstaller executable...
 :: Use parent directory paths like Linux/macOS (no file copying needed)
 
-pyinstaller --noconfirm --onefile --windowed --name "MediaGrab" --add-data "assets;assets" --add-data "../VERSION;." --add-data "../shared;shared" --collect-all "customtkinter" --collect-all "yt_dlp" --collect-all "PIL" --hidden-import "requests" --hidden-import "psutil" main.py
+pyinstaller --noconfirm --onefile --windowed --name "MediaGrab" --icon "assets\icon.ico" --add-data "assets;assets" --add-data "../VERSION;." --add-data "../shared;shared" --collect-all "customtkinter" --collect-all "yt_dlp" --collect-all "PIL" --hidden-import "requests" --hidden-import "psutil" main.py
 set "PY_ERRORLEVEL=!ERRORLEVEL!"
 
 if !PY_ERRORLEVEL! NEQ 0 (

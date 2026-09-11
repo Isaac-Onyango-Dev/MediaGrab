@@ -49,6 +49,7 @@ pyinstaller --noconfirm \
     --windowed \
     --name "${APP_NAME}" \
     --osx-bundle-identifier "${BUNDLE_ID}" \
+    --icon "assets/icon.icns" \
     --add-data "assets:assets" \
     --add-data "../VERSION:." \
     --add-data "../shared:shared" \

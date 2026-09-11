@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Download, Zap, Shield, ChevronRight, Share2, Heart, Copy, Check, Music, List, Activity, FolderOpen, Globe, type LucideIcon } from 'lucide-react';
+import { Download, Zap, Shield, ChevronRight, Share2, Heart, Copy, Check, Music, List, Activity, FolderOpen, Globe, Sparkles, ShieldCheck, Gauge, type LucideIcon } from 'lucide-react';
 
 import {
   FaWindows, FaApple, FaLinux, FaAndroid, FaGithub,
@@ -10,6 +10,7 @@ import {
 import { SiThreads } from 'react-icons/si';
 
 import DonationModal from './components/DonationModal';
+import Logo from './components/Logo';
 
 /**
  * Background Pellets - Floating Gaussian Blur Orbs
@@ -73,6 +74,98 @@ const DOWNLOADS = {
   android: `${RELEASE_BASE}MediaGrab-Android.apk`,
 };
 
+const RELEASE_NOTES = `https://github.com/Isaac-Onyango-Dev/MediaGrab/releases/tag/v${APP_VERSION}`;
+const CHANGELOG = "https://github.com/Isaac-Onyango-Dev/MediaGrab/blob/main/CHANGELOG.md";
+
+interface PlatformRelease {
+  key: string;
+  name: string;
+  icon: typeof FaWindows;
+  requirement: string;
+  file: string;
+  size: string;
+  href: string;
+  cta: string;
+  note: React.ReactNode;
+  accent: string;
+  glow: string;
+  alt?: { label: string; href: string };
+}
+
+const PLATFORMS: PlatformRelease[] = [
+  {
+    key: "Windows",
+    name: "Windows",
+    icon: FaWindows,
+    requirement: "Windows 10 / 11 · 64-bit",
+    file: `MediaGrab-${APP_VERSION}-Setup.exe`,
+    size: "~75 MB",
+    href: DOWNLOADS.windows,
+    cta: "Download installer",
+    note: <>FFmpeg installs itself on first run.</>,
+    accent: "from-sky-400 to-blue-600",
+    glow: "group-hover:shadow-[0_0_45px_-12px_rgba(56,189,248,0.55)]",
+  },
+  {
+    key: "macOS",
+    name: "macOS",
+    icon: FaApple,
+    requirement: "macOS 11 Big Sur and later",
+    file: "MediaGrab-macOS.dmg",
+    size: "~80 MB",
+    href: DOWNLOADS.macos,
+    cta: "Download .dmg",
+    note: <>Needs FFmpeg — <code className="text-white/70">brew install ffmpeg</code></>,
+    accent: "from-slate-200 to-slate-500",
+    glow: "group-hover:shadow-[0_0_45px_-12px_rgba(226,232,240,0.45)]",
+  },
+  {
+    key: "Linux",
+    name: "Linux",
+    icon: FaLinux,
+    requirement: "Ubuntu · Debian · Fedora · x86_64",
+    file: `MediaGrab-${APP_VERSION}-x86_64.AppImage`,
+    size: "~65 MB",
+    href: DOWNLOADS.linux,
+    cta: "Download AppImage",
+    note: <>Needs FFmpeg — <code className="text-white/70">sudo apt install ffmpeg</code></>,
+    accent: "from-amber-400 to-orange-600",
+    glow: "group-hover:shadow-[0_0_45px_-12px_rgba(251,146,60,0.5)]",
+    alt: { label: "or grab the .tar.gz", href: DOWNLOADS.linuxTarball },
+  },
+  {
+    key: "Android",
+    name: "Android",
+    icon: FaAndroid,
+    requirement: "Android 7.0 (API 24) and later",
+    file: "MediaGrab-Android.apk",
+    size: "sideload",
+    href: DOWNLOADS.android,
+    cta: "Download APK",
+    note: <>Pairs with the desktop app over Wi-Fi.</>,
+    accent: "from-emerald-400 to-green-600",
+    glow: "group-hover:shadow-[0_0_45px_-12px_rgba(52,211,153,0.5)]",
+  },
+];
+
+const WHATS_NEW = [
+  {
+    icon: Gauge,
+    title: "Downloads actually start",
+    desc: "Starting a download returned a server error, and progress never moved off 0%. Both are fixed, with live speed, ETA and per-item progress.",
+  },
+  {
+    icon: List,
+    title: "Playlist picking works",
+    desc: "Choosing individual videos on Android now downloads exactly those. A single video that carries a playlist link no longer drags the whole playlist down with it.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Your files stay yours",
+    desc: "Cancelling a download could delete unrelated media in the same folder. Cleanup now touches only its own temporary files, and the progress stream is authenticated.",
+  },
+];
+
 export default function App() {
   const [isDonationModalOpen, setIsDonationModalOpen] = useState(false);
   const [copied, setCopied] = useState<'link' | 'msg' | null>(null);
@@ -113,8 +206,6 @@ export default function App() {
     { icon: FaPinterestP, name: "Pinterest", color: "bg-[#E60023]" },
   ];
 
-  const logoUrl = `${import.meta.env.BASE_URL}logo.png`;
-
   return (
     <div className="relative min-h-screen bg-brand-950 bg-gradient-premium selection:bg-brand-electric/30">
       <BackgroundPellets />
@@ -124,12 +215,14 @@ export default function App() {
       <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-6 border-b border-white/5 backdrop-blur-md bg-transparent">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-brand-electric/20 border border-brand-electric/30 p-1.5 backdrop-blur-xl shrink-0">
-              <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" onError={(e) => {
-                e.currentTarget.style.display = 'none';
-              }} />
-            </div>
+            <Logo size={40} className="shrink-0 rounded-xl" />
             <span className="text-xl font-black tracking-tighter text-white">MediaGrab</span>
+            <a
+              href={RELEASE_NOTES}
+              className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full border border-brand-electric/40 bg-brand-electric/10 text-[11px] font-semibold text-brand-electric no-underline hover:bg-brand-electric/20 transition-colors"
+            >
+              v{APP_VERSION}
+            </a>
           </div>
           <a href="https://github.com/Isaac-Onyango-Dev/MediaGrab" className="flex items-center gap-2 text-sm font-medium text-white hover:text-brand-electric transition-colors">
             <FaGithub size={20} />
@@ -140,14 +233,14 @@ export default function App() {
 
       {/* Hero */}
       <main className="relative z-10 pt-20 pb-20 px-6">
-        <section className="max-w-96 mx-auto text-center py-20">
+        <section className="max-w-3xl mx-auto text-center py-20">
           {/* App Icon */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-16 h-16 mx-auto mb-8 rounded-lg bg-blue-700 flex items-center justify-center"
+            className="mx-auto mb-8 w-20 h-20"
           >
-            <span className="text-white text-4xl font-bold">M</span>
+            <Logo size={80} className="rounded-[22px] drop-shadow-[0_12px_35px_rgba(59,130,246,0.45)]" />
           </motion.div>
 
           {/* App Name */}
@@ -164,10 +257,23 @@ export default function App() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.05 }}
-            className="text-xl text-slate-400 mb-8"
+            className="text-xl text-white/70 mb-6 max-w-xl mx-auto"
           >
             Download videos and audio from anywhere. Free. No limits.
           </motion.p>
+
+          {/* Release ribbon */}
+          <motion.a
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.08 }}
+            href="#whats-new"
+            className="inline-flex items-center gap-2 mb-8 px-3.5 py-1.5 rounded-full glass-card text-xs font-semibold text-white/80 no-underline hover:text-white transition-colors"
+          >
+            <Sparkles size={14} className="text-brand-vivid" />
+            v{APP_VERSION} is out — see what changed
+            <ChevronRight size={14} />
+          </motion.a>
 
           {/* Platform Pills */}
           <motion.div
@@ -235,126 +341,117 @@ export default function App() {
 
         {/* Downloads Section */}
         <section id="downloads" className="max-w-7xl mx-auto py-32 mt-20 border-t border-white/5 px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-5xl font-bold text-white mb-2">Choose your platform</h2>
-            <p className="text-slate-400">Download MediaGrab for your device. Fast, free, and no limits.</p>
+          <div className="text-center mb-4">
+            <h2 className="text-5xl font-bold text-white mb-3">Choose your platform</h2>
+            <p className="text-white/60">Free, open source, and no account required.</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Windows Card */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className={`relative bg-slate-900 border rounded-xl p-6 transition-all hover:transform hover:scale-101 group ${downloadInfo.label.includes("Windows") ? "border-blue-500" : "border-slate-700"
-                }`}
-            >
-              {downloadInfo.label.includes("Windows") && (
-                <div className="absolute top-3 right-3 bg-blue-700 text-white text-xs font-semibold px-2 py-1 rounded-full">
-                  Recommended
-                </div>
-              )}
-              <div className="w-14 h-14 rounded-full bg-blue-600 flex items-center justify-center mb-4">
-                <FaWindows size={28} className="text-white" />
-              </div>
-              <h3 className="text-lg font-semibold text-white mb-1">Windows</h3>
-              <p className="text-sm text-slate-500 mb-3">Windows 10 / 11 · 64-bit</p>
-              <span className="inline-block text-xs bg-slate-800 text-slate-400 px-2 py-1 rounded mb-4">.exe · ~75 MB</span>
-              <a
-                href={DOWNLOADS.windows}
-                className="block w-full bg-blue-500 text-white text-sm font-semibold py-2.5 rounded text-center hover:bg-blue-600 transition-all mb-2"
-              >
-                Download for Windows
-              </a>
-              <p className="text-xs text-slate-500 italic">Requires FFmpeg — <code className="text-slate-400">winget install ffmpeg</code></p>
-            </motion.div>
+          <div className="flex flex-wrap items-center justify-center gap-2 mb-14 text-xs text-white/50">
+            <span className="px-3 py-1 rounded-full glass-card">Version {APP_VERSION}</span>
+            <span className="px-3 py-1 rounded-full glass-card">Signed builds from GitHub Actions</span>
+            <a href={CHANGELOG} className="px-3 py-1 rounded-full glass-card no-underline hover:text-white transition-colors">
+              Changelog
+            </a>
+          </div>
 
-            {/* macOS Card */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.05 }}
-              className={`relative bg-slate-900 border rounded-xl p-6 transition-all hover:transform hover:scale-101 group ${downloadInfo.label.includes("macOS") ? "border-blue-500" : "border-slate-700"
-                }`}
-            >
-              {downloadInfo.label.includes("macOS") && (
-                <div className="absolute top-3 right-3 bg-blue-700 text-white text-xs font-semibold px-2 py-1 rounded-full">
-                  Recommended
-                </div>
-              )}
-              <div className="w-14 h-14 rounded-full bg-slate-700 flex items-center justify-center mb-4">
-                <FaApple size={28} className="text-white" />
-              </div>
-              <h3 className="text-lg font-semibold text-white mb-1">macOS</h3>
-              <p className="text-sm text-slate-500 mb-3">macOS 11 Big Sur and later</p>
-              <span className="inline-block text-xs bg-slate-800 text-slate-400 px-2 py-1 rounded mb-4">.dmg · ~80 MB</span>
-              <a
-                href={DOWNLOADS.macos}
-                className="block w-full bg-blue-500 text-white text-sm font-semibold py-2.5 rounded text-center hover:bg-blue-600 transition-all mb-2"
-              >
-                Download for macOS
-              </a>
-              <p className="text-xs text-slate-500 italic">Requires FFmpeg — <code className="text-slate-400">brew install ffmpeg</code></p>
-            </motion.div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            {PLATFORMS.map((p, idx) => {
+              const recommended = downloadInfo.label.includes(p.key);
+              const Icon = p.icon;
+              return (
+                <motion.div
+                  key={p.key}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: idx * 0.05 }}
+                  className={`group relative flex flex-col glass-card glass-card-hover rounded-3xl p-6 transition-shadow ${p.glow} ${recommended ? 'ring-1 ring-brand-electric/60' : ''}`}
+                >
+                  {recommended && (
+                    <div className="absolute -top-3 left-6 px-2.5 py-1 rounded-full bg-brand-electric text-[10px] font-bold uppercase tracking-wider text-white">
+                      Your device
+                    </div>
+                  )}
 
-            {/* Linux Card */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
-              className={`relative bg-slate-900 border rounded-xl p-6 transition-all hover:transform hover:scale-101 group ${downloadInfo.label.includes("Linux") ? "border-blue-500" : "border-slate-700"
-                }`}
-            >
-              {downloadInfo.label.includes("Linux") && (
-                <div className="absolute top-3 right-3 bg-blue-700 text-white text-xs font-semibold px-2 py-1 rounded-full">
-                  Recommended
-                </div>
-              )}
-              <div className="w-14 h-14 rounded-full bg-orange-500 flex items-center justify-center mb-4">
-                <FaLinux size={28} className="text-white" />
-              </div>
-              <h3 className="text-lg font-semibold text-white mb-1">Linux</h3>
-              <p className="text-sm text-slate-500 mb-3">Ubuntu 20.04 · Debian · Fedora</p>
-              <span className="inline-block text-xs bg-slate-800 text-slate-400 px-2 py-1 rounded mb-4">AppImage · ~65 MB</span>
-              <a
-                href={DOWNLOADS.linux}
-                className="block w-full bg-blue-500 text-white text-sm font-semibold py-2.5 rounded text-center hover:bg-blue-600 transition-all mb-2"
-              >
-                Download for Linux
-              </a>
-              <p className="text-xs text-slate-500 italic">Requires FFmpeg — <code className="text-slate-400">sudo apt install ffmpeg</code></p>
-            </motion.div>
+                  <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${p.accent} flex items-center justify-center mb-5`}>
+                    <Icon size={26} className="text-white drop-shadow" />
+                  </div>
 
-            {/* Android Card */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.15 }}
-              className={`relative bg-slate-900 border rounded-xl p-6 transition-all hover:transform hover:scale-101 group ${downloadInfo.label.includes("Android") ? "border-blue-500" : "border-slate-700"
-                }`}
-            >
-              {downloadInfo.label.includes("Android") && (
-                <div className="absolute top-3 right-3 bg-blue-700 text-white text-xs font-semibold px-2 py-1 rounded-full">
-                  Recommended
-                </div>
-              )}
-              <div className="w-14 h-14 rounded-full bg-green-500 flex items-center justify-center mb-4">
-                <FaAndroid size={28} className="text-white" />
-              </div>
-              <h3 className="text-lg font-semibold text-white mb-1">Android</h3>
-              <p className="text-sm text-slate-500 mb-3">Android 7.0 (API 24) and later</p>
-              <span className="inline-block text-xs bg-slate-800 text-slate-400 px-2 py-1 rounded mb-4">.apk · sideload</span>
-              <a
-                href={DOWNLOADS.android}
-                className="block w-full bg-blue-500 text-white text-sm font-semibold py-2.5 rounded text-center hover:bg-blue-600 transition-all mb-2"
+                  <h3 className="text-lg font-bold text-white mb-1">{p.name}</h3>
+                  <p className="text-sm text-white/50 mb-4">{p.requirement}</p>
+
+                  <div className="mb-5 text-[11px] font-mono text-white/40 break-all">
+                    {p.file}
+                    <span className="ml-2 text-white/30">{p.size}</span>
+                  </div>
+
+                  <div className="mt-auto">
+                    <a
+                      href={p.href}
+                      className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-white/95 text-brand-950 text-sm font-bold no-underline hover:bg-white transition-colors"
+                    >
+                      <Download size={16} />
+                      {p.cta}
+                    </a>
+                    {p.alt && (
+                      <a href={p.alt.href} className="block mt-2 text-center text-[11px] text-white/40 no-underline hover:text-white/70 transition-colors">
+                        {p.alt.label}
+                      </a>
+                    )}
+                    <p className="mt-3 text-[11px] text-white/40 leading-relaxed">{p.note}</p>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+
+          <p className="text-center text-xs text-white/35 mt-10">
+            Looking for older builds or checksums?{' '}
+            <a href={ALL_RELEASES} className="text-brand-electric no-underline hover:underline">Browse all releases</a>
+          </p>
+        </section>
+
+        {/* What's New */}
+        <section id="whats-new" className="max-w-7xl mx-auto py-32 mt-20 border-t border-white/5 px-6">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full glass-card text-xs font-semibold text-brand-vivid mb-5">
+              <Sparkles size={14} />
+              New in v{APP_VERSION}
+            </div>
+            <h2 className="text-4xl font-bold text-white mb-3">A rebuilt download engine</h2>
+            <p className="text-white/60 max-w-2xl mx-auto">
+              This release is an audit of everything that shipped in 1.0.0, with the download
+              pipeline repaired end to end and covered by tests.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {WHATS_NEW.map((item, idx) => (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: idx * 0.05 }}
+                className="glass-card glass-card-hover rounded-3xl p-8"
               >
-                Download APK
-              </a>
-              <p className="text-xs text-slate-500 italic">Enable "Install unknown apps" in Android Settings</p>
-            </motion.div>
+                <div className="w-12 h-12 rounded-2xl bg-brand-vivid/20 border border-brand-vivid/30 flex items-center justify-center mb-5">
+                  <item.icon size={22} className="text-brand-vivid" />
+                </div>
+                <h3 className="text-lg font-bold text-white mb-2">{item.title}</h3>
+                <p className="text-sm text-white/70 leading-relaxed">{item.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="text-center mt-12">
+            <a
+              href={CHANGELOG}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl glass-card glass-card-hover text-sm font-semibold text-white no-underline"
+            >
+              Read the full changelog
+              <ChevronRight size={16} />
+            </a>
           </div>
         </section>
 

@@ -44,6 +44,7 @@ build_executable() {
 
     pyinstaller --noconfirm --onefile \
         --name "$APP_BINARY" \
+        --icon "assets/icon.png" \
         --add-data "assets:assets" \
         --add-data "../VERSION:." \
         --add-data "../shared:shared" \
