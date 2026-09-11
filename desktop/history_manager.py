@@ -358,7 +358,7 @@ class HistoryManager:
         # Update status to indicate retry
         self.update_history_item(task_id, {
             "status": "pending",
-            "message": "Retryingâ¦",
+            "message": "Retrying…",
             "progress": 0
         })
         

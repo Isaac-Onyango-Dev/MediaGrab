@@ -167,6 +167,8 @@ export default function HomeScreen({ navigation }: Props) {
     const { status: connectionMonitorStatus, attemptReconnect } = useConnectionMonitor();
     const inputRef = useRef<TextInput>(null);
     const autoAnalyzeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const connectionStatusRef = useRef(connectionStatus);
+    useEffect(() => { connectionStatusRef.current = connectionStatus; }, [connectionStatus]);
 
     // Load saved format/quality preferences from Settings
     useEffect(() => {
@@ -270,12 +272,19 @@ export default function HomeScreen({ navigation }: Props) {
         }
     }, []);
 
+    // The debounce timer outlives the screen otherwise, firing an analyze
+    // request (and an Alert) after the user has navigated away.
+    useEffect(() => () => {
+        if (autoAnalyzeTimer.current) clearTimeout(autoAnalyzeTimer.current);
+    }, []);
+
     const handleUrlChange = useCallback((text: string) => {
         setUrl(text);
         // Auto-analyze when URL looks valid after 1 second debounce
         if (text.trim().startsWith("http") && text.length > 10) {
             if (autoAnalyzeTimer.current) clearTimeout(autoAnalyzeTimer.current);
             autoAnalyzeTimer.current = setTimeout(async () => {
+                if (connectionStatusRef.current !== "connected") return;
                 setAnalyzing(true);
                 setResult(null);
                 setSelectedIds(new Set());

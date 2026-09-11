@@ -6,9 +6,12 @@
 
 import ZeroConf from "react-native-zeroconf";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { getBackendUrl, setBackendUrl } from "./api";
+import { setBackendUrl } from "./api";
 
-const MEDIAGRAB_SERVICE = "_mediagrab._tcp.";
+// react-native-zeroconf takes the bare service name; it adds the underscores
+// and the protocol itself. Passing "_mediagrab._tcp." produced a service type
+// of "__mediagrab._tcp.._tcp." and never matched the server.
+const MEDIAGRAB_SERVICE = "mediagrab";
 const DISCOVERY_TIMEOUT_MS = 8000;
 const HEALTH_CHECK_TIMEOUT_MS = 2000;
 const STORAGE_KEY = "@mediagrab_backend_url";
@@ -182,7 +185,12 @@ export async function autoConnect(onProgress?: (msg: string) => void): Promise<s
     // 2. Try subnet scan (slower, ~30 seconds but thorough)
     onProgress?.("mDNS not found, scanning local network...");
     url = await discoverBackendSubnetScan((msg) => onProgress?.(msg));
-    if (url) return url;
+    if (url) {
+        // mDNS saves the URL itself; the subnet scan has to do the same or the
+        // address is lost as soon as the app restarts.
+        await setBackendUrl(url);
+        return url;
+    }
 
     // 3. Try last-known saved URL
     const saved = await getSavedBackendUrl();

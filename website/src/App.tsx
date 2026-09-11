@@ -58,6 +58,21 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ icon: Icon, title, desc }) =>
 // PlatformCard component removed to resolve unused variable warning as manual cards are used below.
 
 
+// Release asset names come from .github/workflows/release.yml. APP_VERSION is
+// injected from the repo VERSION file at build time, so a version bump does not
+// leave the site pointing at assets that no longer exist.
+const APP_VERSION = __APP_VERSION__;
+const RELEASE_BASE = `https://github.com/Isaac-Onyango-Dev/MediaGrab/releases/download/v${APP_VERSION}/`;
+const ALL_RELEASES = "https://github.com/Isaac-Onyango-Dev/MediaGrab/releases";
+
+const DOWNLOADS = {
+  windows: `${RELEASE_BASE}MediaGrab-${APP_VERSION}-Setup.exe`,
+  macos: `${RELEASE_BASE}MediaGrab-macOS.dmg`,
+  linux: `${RELEASE_BASE}MediaGrab-${APP_VERSION}-x86_64.AppImage`,
+  linuxTarball: `${RELEASE_BASE}MediaGrab-linux-x86_64.tar.gz`,
+  android: `${RELEASE_BASE}MediaGrab-Android.apk`,
+};
+
 export default function App() {
   const [isDonationModalOpen, setIsDonationModalOpen] = useState(false);
   const [copied, setCopied] = useState<'link' | 'msg' | null>(null);
@@ -71,19 +86,18 @@ export default function App() {
 
   const [downloadInfo] = useState(() => {
     const ua = typeof window !== 'undefined' ? window.navigator.userAgent.toLowerCase() : '';
-    const releaseBase = "https://github.com/Isaac-Onyango-Dev/MediaGrab/releases/download/v1.0.0/";
 
     if (ua.includes("win")) {
-      return { label: "Download for Windows", link: `${releaseBase}MediaGrab-1.0.0-Setup.exe` };
+      return { label: "Download for Windows", link: DOWNLOADS.windows };
     } else if (ua.includes("mac")) {
-      return { label: "Download for macOS", link: `${releaseBase}MediaGrab-macOS.dmg` };
+      return { label: "Download for macOS", link: DOWNLOADS.macos };
     } else if (ua.includes("android")) {
-      return { label: "Download for Android", link: `${releaseBase}MediaGrab-Android.apk` };
+      return { label: "Download for Android", link: DOWNLOADS.android };
     } else if (ua.includes("linux")) {
-      return { label: "Download for Linux", link: `${releaseBase}MediaGrab-Linux` };
+      return { label: "Download for Linux", link: DOWNLOADS.linux };
     }
 
-    return { label: "View All Downloads", link: "https://github.com/Isaac-Onyango-Dev/MediaGrab/releases" };
+    return { label: "View All Downloads", link: ALL_RELEASES };
   });
 
   const shareIcons = [
@@ -247,7 +261,7 @@ export default function App() {
               <p className="text-sm text-slate-500 mb-3">Windows 10 / 11 · 64-bit</p>
               <span className="inline-block text-xs bg-slate-800 text-slate-400 px-2 py-1 rounded mb-4">.exe · ~75 MB</span>
               <a
-                href="https://github.com/Isaac-Onyango-Dev/MediaGrab/releases/download/v1.0.0/MediaGrab-1.0.0-Setup.exe"
+                href={DOWNLOADS.windows}
                 className="block w-full bg-blue-500 text-white text-sm font-semibold py-2.5 rounded text-center hover:bg-blue-600 transition-all mb-2"
               >
                 Download for Windows
@@ -276,7 +290,7 @@ export default function App() {
               <p className="text-sm text-slate-500 mb-3">macOS 11 Big Sur and later</p>
               <span className="inline-block text-xs bg-slate-800 text-slate-400 px-2 py-1 rounded mb-4">.dmg · ~80 MB</span>
               <a
-                href="https://github.com/Isaac-Onyango-Dev/MediaGrab/releases/download/v1.0.0/MediaGrab-macOS.dmg"
+                href={DOWNLOADS.macos}
                 className="block w-full bg-blue-500 text-white text-sm font-semibold py-2.5 rounded text-center hover:bg-blue-600 transition-all mb-2"
               >
                 Download for macOS
@@ -303,9 +317,9 @@ export default function App() {
               </div>
               <h3 className="text-lg font-semibold text-white mb-1">Linux</h3>
               <p className="text-sm text-slate-500 mb-3">Ubuntu 20.04 · Debian · Fedora</p>
-              <span className="inline-block text-xs bg-slate-800 text-slate-400 px-2 py-1 rounded mb-4">binary · ~65 MB</span>
+              <span className="inline-block text-xs bg-slate-800 text-slate-400 px-2 py-1 rounded mb-4">AppImage · ~65 MB</span>
               <a
-                href="https://github.com/Isaac-Onyango-Dev/MediaGrab/releases/download/v1.0.0/MediaGrab-Linux"
+                href={DOWNLOADS.linux}
                 className="block w-full bg-blue-500 text-white text-sm font-semibold py-2.5 rounded text-center hover:bg-blue-600 transition-all mb-2"
               >
                 Download for Linux
@@ -334,7 +348,7 @@ export default function App() {
               <p className="text-sm text-slate-500 mb-3">Android 7.0 (API 24) and later</p>
               <span className="inline-block text-xs bg-slate-800 text-slate-400 px-2 py-1 rounded mb-4">.apk · sideload</span>
               <a
-                href="https://github.com/Isaac-Onyango-Dev/MediaGrab/releases/download/v1.0.0/MediaGrab-Android.apk"
+                href={DOWNLOADS.android}
                 className="block w-full bg-blue-500 text-white text-sm font-semibold py-2.5 rounded text-center hover:bg-blue-600 transition-all mb-2"
               >
                 Download APK

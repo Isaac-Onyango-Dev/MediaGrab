@@ -12,10 +12,10 @@ from typing import Optional
 
 class ServerStorageManager:
     """Manages storage awareness for MediaGrab backend server."""
-    
+
     MIN_DOWNLOAD_SPACE_MB = 100
     LOW_SPACE_WARNING_MB = 500
-    
+
     @staticmethod
     def get_disk_info(path: str) -> dict:
         """Get disk space information for the given path."""
@@ -43,17 +43,17 @@ class ServerStorageManager:
                 "free_mb": 0,
                 "usage_percent": 0
             }
-    
+
     @staticmethod
     def check_output_dir_space(output_dir: str) -> dict:
         """Check available space in output directory.
-        
+
         Returns:
             Dict with space info and whether downloads should be allowed
         """
         os.makedirs(output_dir, exist_ok=True)
         info = ServerStorageManager.get_disk_info(output_dir)
-        
+
         if "error" in info:
             return {
                 "can_download": True,
@@ -61,10 +61,10 @@ class ServerStorageManager:
                 "warning": "Could not check disk space",
                 "info": info
             }
-        
+
         can_download = info["free_mb"] >= ServerStorageManager.MIN_DOWNLOAD_SPACE_MB
         is_low = info["free_mb"] < ServerStorageManager.LOW_SPACE_WARNING_MB
-        
+
         return {
             "can_download": can_download,
             "free_mb": info["free_mb"],
@@ -74,26 +74,26 @@ class ServerStorageManager:
             "warning": f"Low disk space: {info['free_mb']:.0f}MB remaining" if is_low else None,
             "info": info
         }
-    
+
     @staticmethod
     def estimate_download_size(url: str) -> Optional[int]:
         """Estimate file size from URL metadata (in MB).
-        
+
         This is a rough estimate - actual size may vary.
         Returns None if estimation fails.
         """
         try:
             import yt_dlp
-            
+
             ydl_opts = {
                 "quiet": True,
                 "no_warnings": True,
                 "skip_download": True,
             }
-            
+
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
-                
+
                 if info and "formats" in info:
                     # Get the largest format size as estimate
                     max_size = 0
@@ -101,24 +101,24 @@ class ServerStorageManager:
                         size = fmt.get("filesize") or fmt.get("filesize_approx")
                         if size and size > max_size:
                             max_size = size
-                    
+
                     if max_size > 0:
                         return max_size / (1024 * 1024)  # Convert to MB
-                    
+
                     # Fallback: estimate based on duration
                     duration = info.get("duration", 0)
                     if duration > 0:
                         # Rough estimate: 5MB per minute for video, 1MB for audio
                         return (duration / 60) * 5
-                
+
                 return None
         except Exception:
             return None
-    
+
     @staticmethod
     def reject_if_insufficient_space(url: str, output_dir: str) -> dict:
         """Check if there's enough space for a download.
-        
+
         Returns:
             Dict with:
             - allowed: bool
@@ -128,7 +128,7 @@ class ServerStorageManager:
         """
         space_info = ServerStorageManager.check_output_dir_space(output_dir)
         estimated_size = ServerStorageManager.estimate_download_size(url)
-        
+
         if not space_info["can_download"]:
             return {
                 "allowed": False,
@@ -136,7 +136,7 @@ class ServerStorageManager:
                 "estimated_size_mb": estimated_size,
                 "free_space_mb": space_info["free_mb"]
             }
-        
+
         if estimated_size and estimated_size > space_info["free_mb"]:
             return {
                 "allowed": False,
@@ -144,7 +144,7 @@ class ServerStorageManager:
                 "estimated_size_mb": estimated_size,
                 "free_space_mb": space_info["free_mb"]
             }
-        
+
         return {
             "allowed": True,
             "estimated_size_mb": estimated_size,

@@ -68,6 +68,10 @@ export function useDownload(): UseDownloadResult {
   const pollerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const cleanupWsRef = useRef<(() => void) | null>(null);
   const cancelledRef = useRef(false);
+  // Two independent timers: the short one starts polling when the websocket
+  // never connects, the long one fails the download. One ref for both meant
+  // the first was overwritten and could never be cleared.
+  const wsFallbackRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Keep stateRef in sync
@@ -83,6 +87,10 @@ export function useDownload(): UseDownloadResult {
     if (cleanupWsRef.current) {
       cleanupWsRef.current();
       cleanupWsRef.current = null;
+    }
+    if (wsFallbackRef.current) {
+      clearTimeout(wsFallbackRef.current);
+      wsFallbackRef.current = null;
     }
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
@@ -175,8 +183,7 @@ export function useDownload(): UseDownloadResult {
       );
 
       // If WS doesn't get established within 3s, start polling
-      // Fixed: Check ref instead of captured state
-      timeoutRef.current = setTimeout(() => {
+      wsFallbackRef.current = setTimeout(() => {
         if (!wsEstablished && 
             !cancelledRef.current && 
             stateRef.current === "downloading") {
@@ -220,6 +227,9 @@ export function useDownload(): UseDownloadResult {
       message: "Cancelled by user" 
     }));
   }, [taskId, stopTask]);
+
+  // Never leave a poller or timer running behind a closed screen.
+  useEffect(() => stopTask, [stopTask]);
 
   const reset = useCallback(() => {
     stopTask();

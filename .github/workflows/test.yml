@@ -23,13 +23,16 @@ jobs:
           cache-dependency-path: backend/requirements.txt
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements.txt -r requirements-dev.txt
 
       - name: Syntax check
-        run: python -m py_compile main.py downloader.py config.py cache.py
+        run: python -m py_compile main.py downloader.py config.py cache.py storage_manager.py
 
       - name: Import check
         run: python -c "import main; import downloader; import config; print('All imports successful')"
+
+      - name: Tests
+        run: python -m pytest tests -q
 
   validate-mobile:
     runs-on: ubuntu-latest
@@ -71,7 +74,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Syntax check
-        run: python -m py_compile main.py ui_manager.py download_orchestrator.py config_manager.py history_manager.py
+        run: python -m py_compile main.py ui_manager.py download_orchestrator.py config_manager.py history_manager.py storage_manager.py cleanup_manager.py
 
   validate-website:
     runs-on: ubuntu-latest

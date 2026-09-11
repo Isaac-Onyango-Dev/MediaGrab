@@ -6,12 +6,12 @@ import asyncio
 import os
 import re
 import shutil
-import signal
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 import psutil
 import requests
@@ -92,11 +92,16 @@ class FFmpegLocator:
 # Import shared platform detection
 sys.path.append(str(Path(__file__).parent.parent))
 from shared.platform_detection import (
-    detect_platform, 
-    validate_url, 
+    detect_platform,
+    is_playlist_url,
+    validate_url,
     get_platform_patterns
 )
-from shared.yt_dlp_helper import build_yt_dlp_command
+from shared.yt_dlp_helper import (
+    build_yt_dlp_command,
+    normalize_quality,
+    parse_progress_line,
+)
 
 # Import caching system
 from cache import url_analysis_cache, format_cache
@@ -105,7 +110,9 @@ PLATFORM_PATTERNS = get_platform_patterns()
 
 
 def sanitize_filename(name: str) -> str:
-    return re.sub(r'[<>:"/\\|?*]', "", name).strip()
+    name = re.sub(r'[<>:"/\\|?*]', "", name)
+    name = name.replace("\x00", "").strip().strip(".")
+    return name[:180]
 
 
 # ──────────────────────────────────────────────
@@ -174,14 +181,14 @@ async def analyze_url(url: str) -> dict:
     cached_result = url_analysis_cache.get(cache_key)
     if cached_result is not None:
         return cached_result
-    
+
     # Perform analysis
     loop = asyncio.get_running_loop()
     result = await loop.run_in_executor(None, _analyze_url_sync, url)
-    
+
     # Cache the result
     url_analysis_cache.set(cache_key, result)
-    
+
     return result
 
 
@@ -219,15 +226,26 @@ async def get_formats(url: str) -> list:
     cached_result = format_cache.get(cache_key)
     if cached_result is not None:
         return cached_result
-    
+
     # Perform format analysis
     loop = asyncio.get_running_loop()
     result = await loop.run_in_executor(None, _get_formats_sync, url)
-    
+
     # Cache the result
     format_cache.set(cache_key, result)
-    
+
     return result
+
+
+# Files yt-dlp leaves behind mid-download. ".fNNN." matches the per-stream
+# fragments yt-dlp writes before merging; a plain ".f" substring would also
+# match ordinary finished files such as "song.flac", so it is anchored.
+_TEMP_SUFFIXES = (".part", ".ytdl", ".temp", ".tmp")
+_FRAGMENT_RE = re.compile(r"\.f\d+\.[A-Za-z0-9]+$")
+
+
+def _is_temp_artifact(name: str) -> bool:
+    return name.endswith(_TEMP_SUFFIXES) or bool(_FRAGMENT_RE.search(name))
 
 
 # ──────────────────────────────────────────────
@@ -272,7 +290,7 @@ class VideoDownloader:
         output_dir: str,
         task_id: str,
         downloads: dict,
-        playlist_items: list[int] = [],
+        playlist_items: list[int] | None = None,
     ):
         self.url = url
         self.fmt = fmt
@@ -282,44 +300,25 @@ class VideoDownloader:
         self.final_output_dir = self.base_output_dir
         self.task_id = task_id
         self.downloads = downloads
-        self.playlist_items = playlist_items
-        self.total_items = len(playlist_items) if playlist_items else 0
+        self.playlist_items = list(playlist_items or [])
+        self.total_items = len(self.playlist_items)
 
         self.process: subprocess.Popen | None = None
         self._status: str = "pending"
         self._last_line: str = ""
         self._filename: str = ""
+        self._last_percent: float = 0.0
+        self._current_item: int | None = None
+        self._started_at: float = 0.0
 
     def _update(self, **kwargs) -> None:
         current = self.downloads.get(self.task_id, {})
         self.downloads[self.task_id] = {**current, **_make_progress(**kwargs)}
 
-    def _build_opts(self) -> dict:
-        opts: dict[str, Any] = {
-            "quiet": True,
-            "no_warnings": True,
-            "outtmpl": os.path.join(self.output_dir, "%(title)s.%(ext)s"),
-        }
-
-        if self.fmt == "mp3":
-            opts["format"] = "bestaudio/best"
-            opts["postprocessors"] = [{
-                "key": "FFmpegExtractAudio",
-                "preferredcodec": "mp3",
-                "preferredquality": "192",
-            }]
-        elif self.fmt == "original":
-            opts["format"] = "best"
-        else:
-            opts["format"] = self.quality if self.quality != "best" else "bestvideo+bestaudio/best"
-            opts["merge_output_format"] = "mp4"
-
-        return opts
-
     def _get_yt_dlp_cmd(self) -> list[str]:
-        is_playlist = "playlist" in self.url.lower() or "list=" in self.url
+        is_playlist = is_playlist_url(self.url)
         ffmpeg_path = FFmpegLocator.find_ffmpeg()
-        
+
         # Standardize playlist item indexing (1-based for yt-dlp)
         items = [i + 1 for i in self.playlist_items] if self.playlist_items else None
 
@@ -371,23 +370,38 @@ class VideoDownloader:
         self._update(status="cancelled", message="Cancelled by user")
 
     def cleanup_partial(self) -> None:
-        if not self.output_dir or not os.path.exists(self.output_dir):
+        """Remove only this download's leftover temp files.
+
+        Finished media in the same folder must survive, so entries are matched
+        against the yt-dlp temp patterns and against this task's start time.
+        """
+        if not self.output_dir or not os.path.isdir(self.output_dir):
             return
-        for f in os.listdir(self.output_dir):
-            if f.endswith((".part", ".ytdl", ".temp")) or ".f" in f:
-                try:
-                    os.remove(os.path.join(self.output_dir, f))
-                except Exception:
-                    pass
+        for name in os.listdir(self.output_dir):
+            if not _is_temp_artifact(name):
+                continue
+            path = os.path.join(self.output_dir, name)
+            try:
+                if not os.path.isfile(path):
+                    continue
+                if self._started_at and os.path.getmtime(path) < self._started_at:
+                    continue
+                os.remove(path)
+            except OSError:
+                pass
 
     def download(self) -> None:
-        is_playlist = "playlist" in self.url.lower() or "list=" in self.url
+        self._started_at = time.time()
+        self._status = "downloading"
+        is_playlist = is_playlist_url(self.url)
         if is_playlist:
             try:
                 with yt_dlp.YoutubeDL({"quiet": True, "extract_flat": True}) as ydl:
                     info = ydl.extract_info(self.url, download=False)
-                    playlist_title = info.get("title", "Playlist")
-                    self.total_items = info.get("count", len(info.get("entries", [])))
+                    playlist_title = info.get("title") or "Playlist"
+                    self.total_items = (
+                        info.get("playlist_count") or len(info.get("entries") or [])
+                    )
             except Exception:
                 playlist_title = "Playlist"
 
@@ -425,37 +439,45 @@ class VideoDownloader:
                     continue
                 self._last_line = line
 
-                if "download:[" in line:
-                    try:
-                        parts = re.findall(r"\[(.*?)\]", line)
-                        if len(parts) >= 4:
-                            bytes_part = parts[0]
-                            speed = parts[1]
-                            eta = parts[2]
-                            status = parts[3]
-
-                            if "/" in bytes_part:
-                                cur, tot = bytes_part.split("/")
-                                # Enhanced validation to prevent division by zero
-                                if (tot.isdigit() and int(tot) > 0 and 
-                                    cur.isdigit() and int(cur) >= 0):
-                                    pct = (int(cur) / int(tot)) * 100
-                                    # Clamp percentage to reasonable bounds
-                                    pct = max(0, min(100, pct))
-                                    self._update(
-                                        status="downloading",
-                                        progress=pct,
-                                        speed=speed,
-                                        eta=eta,
-                                        message=f"Downloading ({status})..."
-                                    )
-                    except Exception:
-                        pass
+                parsed = parse_progress_line(line)
+                if parsed:
+                    if parsed["percent"] is not None:
+                        self._last_percent = parsed["percent"]
+                    self._update(
+                        status="downloading",
+                        progress=self._last_percent,
+                        speed=parsed["speed"],
+                        eta=parsed["eta"],
+                        message="Downloading…",
+                        filename=self._filename,
+                        current_item=self._current_item,
+                        total_items=self.total_items or None,
+                        output_dir=self.final_output_dir,
+                    )
                 elif "[download] Destination:" in line:
                     self._filename = os.path.basename(line.split("Destination:", 1)[1].strip())
-                    self._update(filename=self._filename)
-                elif "[ExtractAudio]" in line:
-                    self._update(status="processing", message="Extracting audio…", progress=99)
+                    self._update(
+                        status="downloading",
+                        progress=self._last_percent,
+                        filename=self._filename,
+                        message="Downloading…",
+                        current_item=self._current_item,
+                        total_items=self.total_items or None,
+                        output_dir=self.final_output_dir,
+                    )
+                elif "[download] Downloading item" in line or "[download] Downloading video" in line:
+                    match = re.search(r"(\d+)\s+of\s+(\d+)", line)
+                    if match:
+                        self._current_item = int(match.group(1))
+                        self.total_items = int(match.group(2))
+                elif "[ExtractAudio]" in line or "[Merger]" in line:
+                    self._update(
+                        status="processing",
+                        message="Converting…",
+                        progress=99,
+                        filename=self._filename,
+                        output_dir=self.final_output_dir,
+                    )
 
             self.process.wait()
 
@@ -463,13 +485,43 @@ class VideoDownloader:
                 return
 
             if self.process.returncode == 0:
-                self._update(status="complete", progress=100, message="Download complete!", current_item=self.total_items)
+                self._status = "complete"
+                self._update(
+                    status="complete",
+                    progress=100,
+                    message="Download complete!",
+                    filename=self._filename,
+                    current_item=self.total_items or None,
+                    total_items=self.total_items or None,
+                    output_dir=self.final_output_dir,
+                )
             else:
-                self._update(status="error", progress=0, message=f"Process exited with code {self.process.returncode}")
+                self._status = "error"
+                self.cleanup_partial()
+                self._update(
+                    status="error",
+                    progress=0,
+                    message=f"yt-dlp exited with code {self.process.returncode}: {self._last_line[:160]}",
+                    output_dir=self.final_output_dir,
+                )
 
+        except FileNotFoundError:
+            self._status = "error"
+            self._update(
+                status="error",
+                progress=0,
+                message="yt-dlp is not installed or could not be found on PATH.",
+                output_dir=self.final_output_dir,
+            )
         except Exception as e:
             if self._status != "cancelled":
-                self._update(status="error", progress=0, message=str(e))
+                self._status = "error"
+                self._update(
+                    status="error",
+                    progress=0,
+                    message=str(e)[:200],
+                    output_dir=self.final_output_dir,
+                )
 
 
 # ──────────────────────────────────────────────
@@ -477,6 +529,9 @@ class VideoDownloader:
 # ──────────────────────────────────────────────
 
 class HttpDownloader:
+    # 64 KiB keeps LAN transfers fast without huge per-chunk overhead.
+    CHUNK_SIZE = 64 * 1024
+
     def __init__(self, url: str, output_dir: str, task_id: str, downloads: dict):
         self.url = url
         self.output_dir = output_dir or MEDIAGRAB_ROOT
@@ -484,55 +539,90 @@ class HttpDownloader:
         self.task_id = task_id
         self.downloads = downloads
         self._cancelled = False
+        # /download/retry inspects _status on every downloader kind.
+        self._status: str = "pending"
 
     def _update(self, **kwargs) -> None:
-        self.downloads[self.task_id] = _make_progress(**kwargs)
+        current = self.downloads.get(self.task_id, {})
+        self.downloads[self.task_id] = {**current, **_make_progress(**kwargs)}
 
     def cancel(self) -> None:
         self._cancelled = True
+        self._status = "cancelled"
+
+    def _resolve_filename(self, resp) -> str:
+        """Pick a safe filename from Content-Disposition, else from the URL."""
+        disposition = resp.headers.get("content-disposition", "")
+        match = re.search(r'filename\*?=(?:UTF-8\'\'|")?([^";]+)', disposition)
+        raw_name = match.group(1) if match else urlparse(self.url).path.rsplit("/", 1)[-1]
+        name = sanitize_filename(unquote(raw_name))
+        # sanitize_filename strips separators, so the result can never escape
+        # output_dir; an empty or dot-only name falls back to a fixed default.
+        return name or "download"
 
     def download(self) -> None:
         os.makedirs(self.output_dir, exist_ok=True)
-        raw_name = self.url.split("/")[-1].split("?")[0] or "download"
-        filename = sanitize_filename(raw_name) or "download"
-        filepath = os.path.join(self.output_dir, filename)
+        self._status = "downloading"
+        filepath = None
 
-        self._update(status="downloading", progress=0, message="Starting…",
-                     filename=filename, current_item=None, total_items=None,
+        self._update(status="downloading", progress=0, message="Starting\u2026",
                      output_dir=self.final_output_dir)
         try:
-            resp = requests.get(self.url, stream=True, timeout=30)
-            resp.raise_for_status()
-            total = int(resp.headers.get("content-length", 0))
-            downloaded = 0
+            with requests.get(self.url, stream=True, timeout=30) as resp:
+                resp.raise_for_status()
+                filename = self._resolve_filename(resp)
+                filepath = os.path.join(self.output_dir, filename)
+                total = int(resp.headers.get("content-length") or 0)
+                downloaded = 0
+                last_emit = 0.0
 
-            with open(filepath, "wb") as f:
-                for chunk in resp.iter_content(chunk_size=8192):
-                    if self._cancelled:
-                        self._update(status="cancelled", progress=0,
-                                     message="Cancelled", current_item=None, total_items=None,
-                                     output_dir=self.final_output_dir)
-                        return
-                    if chunk:
+                with open(filepath, "wb") as f:
+                    for chunk in resp.iter_content(chunk_size=self.CHUNK_SIZE):
+                        if self._cancelled:
+                            break
+                        if not chunk:
+                            continue
                         f.write(chunk)
                         downloaded += len(chunk)
-                        pct = (downloaded / total * 100) if total else 0
+                        now = time.time()
+                        # Throttle so a fast LAN transfer does not flood the
+                        # progress dict (and every websocket watching it).
+                        if now - last_emit < 0.2:
+                            continue
+                        last_emit = now
                         self._update(
                             status="downloading",
-                            progress=pct,
-                            message="Downloading…",
+                            progress=(downloaded / total * 100) if total else 0,
+                            message="Downloading\u2026",
                             filename=filename,
                             speed=f"{downloaded / (1024 * 1024):.1f} MB downloaded",
-                            eta="",
-                            current_item=None,
-                            total_items=None,
                             output_dir=self.final_output_dir,
                         )
 
+            if self._cancelled:
+                self._cleanup(filepath)
+                self._update(status="cancelled", progress=0, message="Cancelled by user",
+                             output_dir=self.final_output_dir)
+                return
+
+            self._status = "complete"
             self._update(status="complete", progress=100, message="Download complete!",
-                         filename=filename, current_item=None, total_items=None,
-                         output_dir=self.final_output_dir)
+                         filename=os.path.basename(filepath), output_dir=self.final_output_dir)
         except Exception as exc:
+            if self._cancelled:
+                self._cleanup(filepath)
+                self._update(status="cancelled", progress=0, message="Cancelled by user",
+                             output_dir=self.final_output_dir)
+                return
+            self._status = "error"
+            self._cleanup(filepath)
             self._update(status="error", progress=0, message=str(exc)[:200],
-                         current_item=None, total_items=None,
                          output_dir=self.final_output_dir)
+
+    @staticmethod
+    def _cleanup(filepath: str | None) -> None:
+        if filepath and os.path.isfile(filepath):
+            try:
+                os.remove(filepath)
+            except OSError:
+                pass

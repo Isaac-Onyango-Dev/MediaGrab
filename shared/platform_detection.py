@@ -4,7 +4,7 @@ Centralized platform patterns and detection logic for all components.
 """
 
 from typing import Dict, List
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 # Platform patterns used across desktop, backend, and mobile
 PLATFORM_PATTERNS: Dict[str, List[str]] = {
@@ -21,7 +21,7 @@ PLATFORM_PATTERNS: Dict[str, List[str]] = {
 
 SUPPORTED_PLATFORMS = (
     "YouTube & YouTube Music",
-    "TikTok", 
+    "TikTok",
     "Instagram",
     "Facebook",
     "Twitter/X",
@@ -41,18 +41,33 @@ def detect_platform(url: str) -> str:
     try:
         parsed = urlparse(url)
         domain = parsed.netloc.lower()
-        
+
         for platform, domains in PLATFORM_PATTERNS.items():
             if any(d in domain for d in domains):
                 return platform
-                
+
         # Check if it's a direct HTTP link
         if parsed.scheme in ("http", "https") and domain:
             return "generic_http"
-            
+
         return "unknown"
     except Exception:
         return "unknown"
+
+
+def is_playlist_url(url: str) -> bool:
+    """
+    A URL counts as a playlist only when it carries a real playlist marker.
+
+    Substring checks such as "list=" in url also fired on ordinary video links,
+    which made single downloads expand into whole playlists.
+    """
+    parsed = urlparse(url)
+    if "list" in parse_qs(parsed.query):
+        return True
+    path = parsed.path.lower().rstrip("/")
+    segments = path.split("/")
+    return "playlist" in segments or "sets" in segments or "album" in segments
 
 
 def validate_url(url: str) -> bool:

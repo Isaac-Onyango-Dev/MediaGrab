@@ -52,7 +52,7 @@ APP_NAME = "MediaGrab"
 # Version: Try VERSION file first, then fallback to hardcoded version
 # This ensures it works both in development AND in PyInstaller builds
 VERSION_FILE = Path(__file__).parent.parent / "VERSION"
-_hc_version = "1.0.0"  # Hardcoded fallback for PyInstaller builds
+_hc_version = "1.1.0"  # Hardcoded fallback for PyInstaller builds
 try:
     APP_VERSION = VERSION_FILE.read_text().strip() if VERSION_FILE.exists() else _hc_version
 except Exception as e:
@@ -79,11 +79,16 @@ import sys
 sys.path.append(str(Path(__file__).parent.parent))
 from shared.platform_detection import (
     detect_platform,
+    is_playlist_url,
     validate_url,
     get_supported_platforms,
     get_platform_patterns
 )
-from shared.yt_dlp_helper import build_yt_dlp_command
+from shared.yt_dlp_helper import (
+    build_yt_dlp_command,
+    normalize_quality,
+    parse_progress_line,
+)
 from shared.logger import setup_logger
 from storage_manager import StorageManager
 from cleanup_manager import CleanupManager
@@ -372,7 +377,12 @@ class UpdateManager:
             self.restart_app()
 
     def restart_app(self) -> None:
-        subprocess.Popen([sys.executable] + sys.argv)
+        if getattr(sys, "frozen", False):
+            # sys.executable is the app itself once bundled; sys.argv[0] would
+            # be passed to it as a file argument.
+            subprocess.Popen([sys.executable] + sys.argv[1:])
+        else:
+            subprocess.Popen([sys.executable] + sys.argv)
         sys.exit(0)
 
 
@@ -524,7 +534,13 @@ class DownloadManager:
                         break
                     if on_progress:
                         on_progress(0, "", "", f"Preparing item {i+1} of {total}…", i+1, total)
-                    self._run_task_process(v_url, playlist_dir, fmt, quality, task_id, lambda p, s, e, f, cur=i+1, tot=total: on_progress(p, s, e, f, cur, tot) if on_progress else None)
+                    # Each entry is one video, even though its URL may still
+                    # carry the playlist id it came from.
+                    self._run_task_process(
+                        v_url, playlist_dir, fmt, quality, task_id,
+                        lambda p, s, e, f, cur=i+1, tot=total: on_progress(p, s, e, f, cur, tot) if on_progress else None,
+                        force_single=True,
+                    )
                 if not self._cancel_flags.get(task_id) and on_complete:
                     on_complete({"output_dir": playlist_dir})
             else:
@@ -540,10 +556,10 @@ class DownloadManager:
             self._processes.pop(task_id, None)
             self._cancel_flags.pop(task_id, None)
 
-    def _run_task_process(self, url, out_dir, fmt, quality, task_id, on_progress):
+    def _run_task_process(self, url, out_dir, fmt, quality, task_id, on_progress, force_single: bool = False):
         path = ffmpeg_mgr.get_path()
-        is_playlist = "playlist" in url.lower() or "list=" in url
-        
+        is_playlist = False if force_single else is_playlist_url(url)
+
         # Build command using shared helper
         cmd = build_yt_dlp_command(
             url=url,
@@ -553,42 +569,32 @@ class DownloadManager:
             ffmpeg_path=path,
             is_playlist=is_playlist
         )
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, encoding="utf-8", bufsize=1, creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, encoding="utf-8", errors="replace", bufsize=1, creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
         self._processes[task_id] = proc
+        last_percent = 0.0
+        last_line = ""
         for line in proc.stdout:
             if self._cancel_flags.get(task_id):
                 break
             line = line.strip()
             if not line:
                 continue
-            if "download:[" in line:
-                try:
-                    parts = re.findall(r"\[(.*?)\]", line)
-                    if len(parts) >= 4 and on_progress:
-                        bytes_part = parts[0]
-                        if "/" in bytes_part:
-                            cur, tot = bytes_part.split("/")
-                            # Enhanced validation to prevent division by zero
-                            if (tot.isdigit() and int(tot) > 0 and 
-                                cur.isdigit() and int(cur) >= 0):
-                                try:
-                                    pct = (int(cur) / int(tot)) * 100
-                                    # Clamp percentage to reasonable bounds
-                                    pct = max(0, min(100, pct))
-                                    on_progress(pct, parts[1], parts[2], "")
-                                except (ZeroDivisionError, ValueError, OverflowError):
-                                    # Silently handle calculation errors
-                                    pass
-                except Exception:
-                    pass
+            last_line = line
+
+            parsed = parse_progress_line(line)
+            if parsed:
+                if parsed["percent"] is not None:
+                    last_percent = parsed["percent"]
+                if on_progress:
+                    on_progress(last_percent, parsed["speed"], parsed["eta"], "")
             elif "[download] Destination:" in line and on_progress:
                 fname = os.path.basename(line.split("Destination:", 1)[1].strip())
-                on_progress(0, "", "", fname)
-            elif "[ExtractAudio]" in line and on_progress:
-                on_progress(99, "", "", "Extracting audio…")
+                on_progress(last_percent, "", "", fname)
+            elif ("[ExtractAudio]" in line or "[Merger]" in line) and on_progress:
+                on_progress(99, "", "", "Converting…")
         proc.wait()
         if proc.returncode != 0 and not self._cancel_flags.get(task_id):
-            raise Exception(f"yt-dlp failed with code {proc.returncode}")
+            raise Exception(f"yt-dlp failed with code {proc.returncode}: {last_line[:160]}")
 
     def pause(self, task_id: str) -> bool:
         proc = self._processes.get(task_id)
@@ -685,7 +691,7 @@ class MediaGrabApp(ctk.CTk):
         self._result: dict | None = None
         self._task_id: str | None = None
         self._fmt_var = ctk.StringVar(value=self._cfg.get("format", "mp3"))
-        self._quality_var = ctk.StringVar(value="best")
+        self._quality_var = ctk.StringVar(value=self._cfg.get("quality", "best"))
         self._output_dir = self._cfg.get("output_dir", DEFAULT_DIR)
         self._selected_videos: dict[str, bool] = {}
         self._last_progress_update = 0.0
@@ -849,11 +855,10 @@ class MediaGrabApp(ctk.CTk):
             self._q_menu.pack_forget()
 
     def _on_quality_change(self, value: str) -> None:
-        if value == "best":
-            self._quality_var.set("best")
-        else:
-            h = value[:-1]
-            self._quality_var.set(f"bestvideo[height<={h}]+bestaudio/best")
+        # The option menu shares _quality_var, so it must keep the human label.
+        # normalize_quality() turns it into a yt-dlp selector at download time.
+        self._cfg["quality"] = value
+        save_config(self._cfg)
 
     # ── Analysis ──────────────────────────────
 
@@ -958,6 +963,8 @@ class MediaGrabApp(ctk.CTk):
                 messagebox.showwarning("FFmpeg Missing", "FFmpeg is required for downloads. It will be installed automatically now.")
                 self._check_ffmpeg_status()
                 return
+        if not self._check_disk_space():
+            return
         url = self._url_entry.get().strip()
         selected_urls = []
         if self._result.get("type") == "playlist":
@@ -974,13 +981,38 @@ class MediaGrabApp(ctk.CTk):
             target=self._manager.download,
             kwargs=dict(
                 url=url, output_dir=self._output_dir, fmt=self._fmt_var.get(),
-                quality=self._quality_var.get(), task_id=tid, selected_urls=selected_urls,
+                quality=normalize_quality(self._quality_var.get()), task_id=tid, selected_urls=selected_urls,
                 on_progress=lambda p, s, e, f, ci=None, ti=None: self.after(0, self._update_progress, p, s, e, f, ci, ti, tid),
                 on_complete=lambda d: self.after(0, self._on_dl_complete, d, tid),
                 on_error=lambda err: self.after(0, self._on_dl_error, err, tid),
             ),
             daemon=True
         ).start()
+
+    def _check_disk_space(self) -> bool:
+        """Warn before starting a download that the disk cannot hold."""
+        try:
+            os.makedirs(self._output_dir, exist_ok=True)
+            ok, info = storage_mgr.has_enough_space(
+                self._output_dir, StorageManager.MIN_DOWNLOAD_SPACE_MB
+            )
+        except Exception:
+            return True  # Never block a download on a failed space check.
+
+        if not ok:
+            messagebox.showerror(
+                "Not Enough Space",
+                f"Only {info.get('free_mb', 0):.0f} MB free in:\n{self._output_dir}\n\n"
+                "Free up space or choose another folder.",
+            )
+            return False
+
+        if info.get("free_mb", 0) < StorageManager.LOW_SPACE_WARNING_MB:
+            return messagebox.askyesno(
+                "Low Disk Space",
+                f"Only {info['free_mb']:.0f} MB free in:\n{self._output_dir}\n\nStart anyway?",
+            )
+        return True
 
     def _show_progress(self):
         self._last_progress_update = 0.0
@@ -997,9 +1029,11 @@ class MediaGrabApp(ctk.CTk):
         self._prog_sec.pack(fill="x", pady=(0, 10), before=self._dl_btn)
 
     def _update_progress(self, pct, speed, eta, filename, ci=None, ti=None, tid=None):
-        # Debounce main UI progress and history cards to every 250ms
+        # Debounce percentage churn, but never drop a filename or a finishing
+        # update - those arrive once and the UI would otherwise miss them.
         now = time.monotonic()
-        if now - self._last_progress_update < 0.25:
+        important = bool(filename) or pct >= 99
+        if not important and now - self._last_progress_update < 0.25:
             return
         self._last_progress_update = now
 
@@ -1007,8 +1041,8 @@ class MediaGrabApp(ctk.CTk):
         if tid in self._history_items:
             # We only update the history card if enough time has passed
             self._history_items[tid].update_state({
-                "status": "downloading", 
-                "progress": pct, 
+                "status": "downloading",
+                "progress": pct,
                 "message": f"{speed} | {eta}" if speed else "Downloading…",
                 "filename": filename
             })
@@ -1019,7 +1053,7 @@ class MediaGrabApp(ctk.CTk):
         if not hasattr(self, '_progress_history_index'):
             self._progress_history_index = 0
             self._progress_history_max_size = 3
-        
+
         # Maintain circular buffer of fixed size
         if len(self._progress_history) < self._progress_history_max_size:
             self._progress_history.append(pct)
@@ -1027,7 +1061,7 @@ class MediaGrabApp(ctk.CTk):
             # Replace oldest value in circular buffer
             self._progress_history[self._progress_history_index] = pct
             self._progress_history_index = (self._progress_history_index + 1) % self._progress_history_max_size
-        
+
         # Calculate average of available values
         if self._progress_history:
             smoothed_pct = sum(self._progress_history) / len(self._progress_history)
@@ -1069,18 +1103,29 @@ class MediaGrabApp(ctk.CTk):
                     self._history_items[self._task_id].update_state({"status": "downloading", "message": "Resuming…"})
 
     def _cancel_download(self):
-        if self._task_id:
-            self._manager.cancel(self._task_id)
-            self._on_dl_error("Cancelled", self._task_id)
+        if not self._task_id:
+            return
+        tid = self._task_id
+        self._manager.cancel(tid)
+        # The worker thread exits without firing on_complete once cancelled, so
+        # the UI is settled here instead.
+        self._on_dl_error("Cancelled", tid)
+        self._task_id = None
 
     def _on_dl_complete(self, data, tid):
         if tid == self._task_id:
             self._dl_btn.configure(state="normal", text="  Download")
             self._analyze_btn.configure(state="normal")
             self._badge.set("Download complete!", "success")
+        title = self._result.get("title", "Unknown") if self._result else "Unknown"
         if tid in self._history_items:
-            self._history_items[tid].update_state({"status": "complete", "progress": 100, "message": "Finished", "output_dir": data.get("output_dir")})
-        self._history_list.append({"tid": tid, "title": self._history_items[tid].data["title"], "status": "complete", "ts": datetime.now().isoformat()})
+            card = self._history_items[tid]
+            card.update_state({"status": "complete", "progress": 100, "message": "Finished", "output_dir": data.get("output_dir")})
+            title = card.data.get("title", title)
+        self._history_list.append({
+            "tid": tid, "title": title, "status": "complete",
+            "output_dir": data.get("output_dir"), "ts": datetime.now().isoformat(),
+        })
         save_history(self._history_list)
 
     def _on_dl_error(self, msg, tid):
@@ -1121,23 +1166,45 @@ class MediaGrabApp(ctk.CTk):
                 self._start_download()
 
     def _history_delete(self, tid):
-        if tid in self._history_items:
-            file_path = self._history_items[tid].data.get("output_dir")
-            if file_path and os.path.exists(file_path):
-                if messagebox.askyesno("Delete File", f"Do you want to permanently delete the downloaded files at:\n{file_path}?"):
-                    try:
-                        if os.path.isdir(file_path):
-                            shutil.rmtree(file_path)
-                        else:
-                            os.remove(file_path)
-                    except Exception as e:
-                        messagebox.showerror("Error", f"Could not delete file: {e}")
-            self._history_items[tid].destroy()
-            del self._history_items[tid]
+        """Remove one history card, offering to delete that download's file."""
+        card = self._history_items.get(tid)
+        if not card:
+            return
+
+        target = self._deletable_path(card.data)
+        if target and messagebox.askyesno(
+            "Delete Download",
+            f"Also delete the downloaded file?\n\n{target}",
+        ):
+            try:
+                os.remove(target)
+            except OSError as e:
+                messagebox.showerror("Error", f"Could not delete file: {e}")
+
+        card.destroy()
+        del self._history_items[tid]
+        self._history_list = [h for h in self._history_list if h.get("tid") != tid]
+        save_history(self._history_list)
+
+    def _deletable_path(self, data: dict) -> str | None:
+        """
+        The single file this entry produced, or None.
+
+        Deliberately never returns a directory: output_dir is often the shared
+        download root, and removing it would take every other download with it.
+        """
+        out_dir = data.get("output_dir")
+        filename = data.get("filename")
+        if not out_dir or not filename:
+            return None
+        path = os.path.join(out_dir, filename)
+        return path if os.path.isfile(path) else None
 
     def _clear_history(self):
-        for tid in list(self._history_items.keys()):
-            self._history_delete(tid)
+        """Clear the list only. Downloaded files are never touched here."""
+        for tid, card in list(self._history_items.items()):
+            card.destroy()
+            del self._history_items[tid]
         self._history_list = []
         save_history([])
 
@@ -1340,7 +1407,11 @@ class HistoryItem(ctk.CTkFrame):
         self.delete_btn.pack(side="right")
 
     def update_state(self, data):
-        self.data = data
+        # Merge: progress updates carry no title/output_dir, and replacing the
+        # dict wholesale used to lose them (and crash on completion).
+        self.data = {**self.data, **data}
+        data = self.data
+        self.title_lbl.configure(text=data.get("title", "Unknown"))
         status = data.get("status", "pending")
         progress = data.get("progress", 0) / 100
         self.pbar.set(progress)

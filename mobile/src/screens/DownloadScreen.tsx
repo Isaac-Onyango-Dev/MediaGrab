@@ -79,13 +79,34 @@ export default function DownloadScreen({ route, navigation }: Props) {
     const [loadingQ, setLoadingQ] = useState(false);
     const [downloadingStarted, setDownloadingStarted] = useState(false);
 
+    const isPlaylist = contentType === "playlist";
+    const selectedEntries = entries ?? [];
+
+    // A playlist download sends the chosen entry URLs to /download/playlist;
+    // a single video goes to /download/start.
+    const buildParams = useCallback(() => {
+        const base = {
+            url,
+            fmt,
+            quality: fmt === "mp3" ? "best" : quality,
+        };
+        if (isPlaylist && selectedEntries.length > 0) {
+            return {
+                ...base,
+                selected_urls: selectedEntries.map(e => e.url).filter(Boolean),
+                playlist_name: title,
+            };
+        }
+        return base;
+    }, [url, fmt, quality, isPlaylist, selectedEntries, title]);
+
     // Auto-start for single video when format selection skipped
     useEffect(() => {
         if (skipFormatSelection && !downloadingStarted && downloadState === "idle") {
             setDownloadingStarted(true);
-            start({ url, fmt, quality: "best" });
+            start(buildParams());
         }
-    }, [skipFormatSelection, downloadingStarted, downloadState, start, url, fmt]);
+    }, [skipFormatSelection, downloadingStarted, downloadState, start, buildParams]);
 
     // Fetch available qualities for MP4
     useEffect(() => {
@@ -105,13 +126,13 @@ export default function DownloadScreen({ route, navigation }: Props) {
 
     const handleStartDownload = useCallback(() => {
         if (downloadState !== "idle") return;
+        if (isPlaylist && selectedEntries.length === 0) {
+            Alert.alert("Nothing selected", "Pick at least one video from the playlist.");
+            return;
+        }
         setDownloadingStarted(true);
-        start({
-            url,
-            fmt,
-            quality: fmt === "mp3" ? "best" : quality,
-        });
-    }, [downloadState, start, url, fmt, quality]);
+        start(buildParams());
+    }, [downloadState, start, buildParams, isPlaylist, selectedEntries.length]);
 
     const handleCancel = useCallback(() => {
         cancel();
@@ -184,8 +205,10 @@ export default function DownloadScreen({ route, navigation }: Props) {
                         {platform === "youtube" ? "▶️" : platform === "tiktok" ? "🎵" : "🔗"} {platform}
                     </Text>
                     <Text style={styles.videoTitle} numberOfLines={2}>{title}</Text>
-                    {contentType === "playlist" && count && (
-                        <Text style={styles.subText}>📁 {count} videos in playlist</Text>
+                    {isPlaylist && (
+                        <Text style={styles.subText}>
+                            📁 {selectedEntries.length || count || 0} of {count ?? selectedEntries.length} videos selected
+                        </Text>
                     )}
                 </Card>
 
@@ -270,6 +293,11 @@ export default function DownloadScreen({ route, navigation }: Props) {
                         {progress.filename && (
                             <Text style={styles.progressDetail} numberOfLines={1}>
                                 📄 {progress.filename}
+                            </Text>
+                        )}
+                        {progress.items_total != null && progress.items_total > 1 && (
+                            <Text style={styles.progressDetail}>
+                                📦 Item {(progress.items_done ?? 0) + 1} of {progress.items_total}
                             </Text>
                         )}
 

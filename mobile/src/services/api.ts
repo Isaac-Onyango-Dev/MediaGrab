@@ -75,9 +75,37 @@ export interface ProgressInfo {
 const DEFAULT_BACKEND = ""; // Empty: forces discovery or manual entry
 const STORAGE_KEY = "@mediagrab_backend_url";
 const API_KEY_STORAGE = "@mediagrab_api_key";
+const CLIENT_ID_STORAGE = "@mediagrab_client_id";
 
 let _cachedUrl: string | null = null;
 let _cachedApiKey: string | null = null;
+let _cachedClientId: string | null = null;
+
+/**
+ * A stable per-install id.
+ *
+ * The backend scopes every task to its owner. Without this header it falls back
+ * to IP plus user agent, which collides between apps on the same device and
+ * changes whenever the device's address does.
+ */
+export async function getClientId(): Promise<string> {
+    if (_cachedClientId) return _cachedClientId;
+    try {
+        const stored = await AsyncStorage.getItem(CLIENT_ID_STORAGE);
+        if (stored) {
+            _cachedClientId = stored;
+            return stored;
+        }
+        const generated = `mg-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+        await AsyncStorage.setItem(CLIENT_ID_STORAGE, generated);
+        _cachedClientId = generated;
+        return generated;
+    } catch {
+        // Storage unavailable: fall back to a per-session id.
+        _cachedClientId = _cachedClientId ?? `mg-session-${Math.random().toString(36).slice(2, 10)}`;
+        return _cachedClientId;
+    }
+}
 
 export async function getBackendUrl(): Promise<string> {
     if (_cachedUrl) return _cachedUrl;
@@ -124,22 +152,27 @@ async function api<T>(
     timeoutMs = REQUEST_TIMEOUT_MS,
 ): Promise<T> {
     const base = await getBackendUrl();
-    const apiKey = await getApiKey();
+    if (!base) {
+        throw new Error("No server configured - connect to MediaGrab first.");
+    }
+    const [apiKey, clientId] = await Promise.all([getApiKey(), getClientId()]);
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
         const headers: Record<string, string> = {
             "Content-Type": "application/json",
+            "X-Client-ID": clientId,
         };
         if (apiKey) {
             headers["X-API-Key"] = apiKey;
         }
 
+        // Spread options first so caller headers merge rather than replace ours.
         const res = await fetch(`${base}${path}`, {
-            headers,
-            signal: controller.signal,
             ...options,
+            headers: { ...headers, ...(options.headers as Record<string, string> | undefined) },
+            signal: controller.signal,
         });
 
         if (!res.ok) {
@@ -240,6 +273,23 @@ export async function cancelDownload(taskId: string): Promise<void> {
     await api(`/download/cancel/${taskId}`, { method: "POST" });
 }
 
+export interface StorageInfo {
+    can_download: boolean;
+    free_mb: number;
+    free_gb?: number;
+    is_low_space?: boolean;
+    warning?: string | null;
+}
+
+/** Free space on the *server*, which is where downloads actually land. */
+export async function getServerStorage(): Promise<StorageInfo | null> {
+    try {
+        return await api<StorageInfo>("/storage", {}, 5_000);
+    } catch {
+        return null;
+    }
+}
+
 // ─────────────────────────────────────────────
 // WebSocket progress streaming
 // ─────────────────────────────────────────────
@@ -252,10 +302,22 @@ export function createProgressSocket(
     let ws: WebSocket | null = null;
     let closed = false;
 
-    getBackendUrl().then((base) => {
-        if (closed) return;
+    Promise.all([getBackendUrl(), getApiKey(), getClientId()]).then(([base, apiKey, clientId]) => {
+        if (closed || !base) {
+            if (!closed) {
+                closed = true;
+                onDone();
+            }
+            return;
+        }
 
-        const wsUrl = base.replace(/^https?/, (m) => (m === "https" ? "wss" : "ws")) + `/ws/${taskId}`;
+        // The websocket handshake cannot carry our headers, so credentials go
+        // in the query string, which is what the backend reads.
+        const params = new URLSearchParams({ client_id: clientId });
+        if (apiKey) params.append("api_key", apiKey);
+        const wsUrl =
+            base.replace(/^https?/, (m) => (m === "https" ? "wss" : "ws")) +
+            `/ws/${encodeURIComponent(taskId)}?${params.toString()}`;
         ws = new WebSocket(wsUrl);
 
         ws.onmessage = (evt) => {

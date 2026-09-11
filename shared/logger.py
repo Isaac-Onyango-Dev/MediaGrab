@@ -12,7 +12,7 @@ def setup_logger(name: str, level: str = "INFO") -> logging.Logger:
     Configures and returns a standardized logger.
     """
     logger = logging.getLogger(name)
-    
+
     # Avoid duplicate handlers if already configured
     if logger.handlers:
         return logger

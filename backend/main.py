@@ -9,12 +9,12 @@ Docker: docker compose up
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import os
+import secrets
 import sys
-import json
 import uuid
 import time
-import shutil
 import socket
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -44,11 +44,12 @@ from downloader import (
     detect_platform,
     get_formats,
     validate_url,
-    MEDIAGRAB_ROOT,
     resolve_output_dir,
 )
 from shared.logger import setup_logger
 from storage_manager import ServerStorageManager
+
+TERMINAL_STATES = ("complete", "error", "cancelled")
 
 # Initialize standardized logger
 logger = setup_logger("backend")
@@ -75,26 +76,49 @@ limiter = Limiter(key_func=get_remote_address)
 
 API_KEY_HEADER = APIKeyHeader(name="X-API-Key", auto_error=False)
 
-async def verify_api_key(api_key_header: str = Security(API_KEY_HEADER)):
-    """Validate API key - authentication is mandatory for security."""
+def _api_key_valid(api_key_header: str | None) -> bool:
+    """Whether a caller may proceed. No configured key means home/LAN mode."""
     if not settings.api_key:
-        logger.warning("API key not configured - running in insecure mode (Home Use)")
-        return  # Allow access in development/home mode
-    
+        return True
+    return bool(api_key_header) and secrets.compare_digest(api_key_header, settings.api_key)
+
+
+async def verify_api_key(api_key_header: str = Security(API_KEY_HEADER)):
+    """Validate the API key when one is configured."""
+    if not settings.api_key:
+        # Home mode. The warning is logged once at startup, not per request.
+        return
+
     if not api_key_header:
         raise HTTPException(status_code=401, detail="API key required")
-    
-    if api_key_header != settings.api_key:
+
+    if not secrets.compare_digest(api_key_header, settings.api_key):
         raise HTTPException(status_code=403, detail="Invalid API key")
-    
+
     return
+
+# How long a finished task stays queryable before the janitor drops it.
+TASK_RETENTION_SECONDS = 3600
 
 downloads:  dict[str, dict] = {}
 instances:  dict[str, VideoDownloader | HttpDownloader] = {}
 task_times: dict[str, float] = {}
 task_owners:  dict[str, str] = {}  # task_id -> client_identifier
 
-DEFAULT_OUT = MEDIAGRAB_ROOT
+# Client-supplied output_dir is always relative to settings.output_dir, so the
+# default is "the root itself" rather than an absolute path the validator would
+# (correctly) reject.
+DEFAULT_OUT = ""
+
+
+def _local_ip() -> str:
+    """Best-effort LAN address for the mDNS advertisement."""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            sock.connect(("8.8.8.8", 80))
+            return sock.getsockname()[0]
+    except OSError:
+        return "127.0.0.1"
 
 
 def _get_client_identifier(request: Request) -> str:
@@ -104,10 +128,12 @@ def _get_client_identifier(request: Request) -> str:
     if client_id:
         return client_id
 
-    # Fall back to IP address
+    # Fall back to IP + user agent. hashlib rather than hash(), whose string
+    # seed is randomised per process and would change across restarts.
     client_host = request.client.host if request.client else "unknown"
     user_agent = request.headers.get("User-Agent", "unknown")
-    return f"{client_host}:{hash(user_agent) % 10000}"
+    digest = hashlib.sha256(user_agent.encode("utf-8", "replace")).hexdigest()[:12]
+    return f"{client_host}:{digest}"
 
 
 def _verify_task_ownership(task_id: str, request: Request) -> None:
@@ -117,7 +143,7 @@ def _verify_task_ownership(task_id: str, request: Request) -> None:
 
     if owner_id is None:
         raise HTTPException(status_code=404, detail="Task not found")
-    
+
     if owner_id != client_id:
         raise HTTPException(status_code=403, detail="Access denied: task belongs to another client")
 
@@ -126,18 +152,20 @@ async def _cleanup_loop() -> None:
     while True:
         await asyncio.sleep(300)
         now = time.time()
-        
-        # Clean up expired tasks
+
+        # Clean up finished tasks only; a long download must never be evicted
+        # from the progress registry while it is still running.
         to_del = [
             tid for tid, ts in list(task_times.items())
-            if now - ts > 3600
+            if now - ts > TASK_RETENTION_SECONDS
+            and downloads.get(tid, {}).get("status") in TERMINAL_STATES
         ]
         for tid in to_del:
             downloads.pop(tid, None)
             instances.pop(tid, None)
             task_times.pop(tid, None)
             task_owners.pop(tid, None)
-        
+
         # Clean up expired cache entries
         url_analysis_cache.cleanup_expired()
         format_cache.cleanup_expired()
@@ -145,33 +173,47 @@ async def _cleanup_loop() -> None:
 
 @asynccontextmanager
 async def lifespan(application: FastAPI):
-    ip_addr = "127.0.0.1"
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
-        ip_addr = s.getsockname()[0]
-        s.close()
-    except Exception:
-        pass
+    app.state.started_at = time.time()
 
-    info = ServiceInfo(
-        "_mediagrab._tcp.local.",
-        "MediaGrab Server._mediagrab._tcp.local.",
-        addresses=[socket.inet_aton(ip_addr)],
-        port=8000,
-        properties={"version": APP_VERSION, "path": "/"},
-        server="mediagrab.local.",
-    )
-    zc = Zeroconf(ip_version=IPVersion.V4Only)
-    zc.register_service(info)
+    if not settings.api_key:
+        logger.warning(
+            "MEDIAGRAB_API_KEY is not set - the API is open to everyone on this "
+            "network. Set it before exposing the server beyond your LAN."
+        )
+
+    zc = None
+    info = None
+    try:
+        info = ServiceInfo(
+            "_mediagrab._tcp.local.",
+            "MediaGrab Server._mediagrab._tcp.local.",
+            addresses=[socket.inet_aton(_local_ip())],
+            port=settings.port,
+            properties={"version": APP_VERSION, "path": "/"},
+            server="mediagrab.local.",
+        )
+        zc = Zeroconf(ip_version=IPVersion.V4Only)
+        zc.register_service(info)
+    except Exception as exc:
+        # Discovery is a convenience; the server must still serve without it.
+        logger.warning(f"mDNS advertisement unavailable: {exc}")
+        zc = None
 
     cleanup_task = asyncio.create_task(_cleanup_loop())
 
-    yield
-
-    cleanup_task.cancel()
-    zc.unregister_service(info)
-    zc.close()
+    try:
+        yield
+    finally:
+        cleanup_task.cancel()
+        try:
+            await cleanup_task
+        except asyncio.CancelledError:
+            pass
+        if zc is not None:
+            try:
+                zc.unregister_service(info)
+            finally:
+                zc.close()
 
 
 app = FastAPI(
@@ -220,30 +262,38 @@ def _assert_valid_url(url: str) -> None:
         raise HTTPException(status_code=400, detail="Invalid URL — must start with http:// or https://")
 
 
-def _assert_safe_output_dir(path: str) -> None:
+def _resolve_output_dir(path: str) -> str:
     """
-    Ensures the given relative path is safe and stays within the permitted root.
-    """
-    settings = get_settings()
-    root = Path(settings.output_dir).expanduser().resolve()
-    
-    try:
-        # Prevent any absolute paths or current/parent directory references in input
-        if os.path.isabs(path) or ".." in path or ":" in path:
-             raise HTTPException(status_code=400, detail="Invalid path - only relative subfolders are allowed.")
+    Resolve a client-supplied relative subfolder against the configured root.
 
-        # Resolve the final path
-        # We join root with the provided path. If path is empty, it's just root.
-        resolved = (root / path).expanduser().resolve()
-        
-        # Security: The resolved path must be root itself or a descendant of root
-        if not str(resolved).startswith(str(root)):
-            raise HTTPException(status_code=400, detail="Security error: Path traversal detected.")
-            
-    except Exception as e:
-        if isinstance(e, HTTPException):
-            raise e
-        raise HTTPException(status_code=400, detail="Invalid output path configuration.")
+    Only relative subfolders are accepted; anything that escapes the root is
+    rejected rather than silently clamped.
+    """
+    root = Path(get_settings().output_dir).expanduser().resolve()
+
+    path = (path or "").strip()
+    if path in (".", "./"):
+        path = ""
+
+    if path:
+        candidate = Path(path)
+        if candidate.is_absolute() or candidate.drive or ".." in candidate.parts:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid path - only relative subfolders are allowed.",
+            )
+
+    try:
+        resolved = (root / path).resolve()
+        resolved.relative_to(root)
+    except (ValueError, OSError):
+        raise HTTPException(status_code=400, detail="Invalid output path.")
+
+    return str(resolved)
+
+
+def _assert_safe_output_dir(path: str) -> None:
+    _resolve_output_dir(path)
 
 
 def _sanitize_playlist_name(name: str) -> str:
@@ -258,11 +308,18 @@ def _sanitize_playlist_name(name: str) -> str:
 
 @app.get("/health")
 async def health():
+    started_at = getattr(app.state, "started_at", None)
     return {
         "status": "ok",
         "version": APP_VERSION,
-        "uptime": time.time(),
+        "uptime": round(time.time() - started_at, 1) if started_at else 0.0,
     }
+
+
+@app.get("/storage")
+async def storage(request: Request, output_dir: str = "", _=Depends(verify_api_key)):
+    """Free space at the download root, so clients can warn before starting."""
+    return ServerStorageManager.check_output_dir_space(_resolve_output_dir(output_dir))
 
 
 @app.post("/analyze")
@@ -294,7 +351,7 @@ async def start_download(req: DownloadRequest, request: Request, _=Depends(verif
 
     task_id = str(uuid.uuid4())
     client_id = _get_client_identifier(request)
-    
+
     downloads[task_id] = {
         "status": "pending",
         "progress": 0,
@@ -309,8 +366,8 @@ async def start_download(req: DownloadRequest, request: Request, _=Depends(verif
     task_owners[task_id] = client_id
 
     platform = detect_platform(req.url)
-    root = Path(get_settings().output_dir).expanduser().resolve()
-    output = str((root / (req.output_dir or "")).resolve())
+    output = _resolve_output_dir(req.output_dir)
+    downloads[task_id]["output_dir"] = output
 
     if platform == "generic_http":
         inst = HttpDownloader(
@@ -327,7 +384,9 @@ async def start_download(req: DownloadRequest, request: Request, _=Depends(verif
     instances[task_id] = inst
 
     loop = asyncio.get_running_loop()
-    asyncio.create_task(loop.run_in_executor(None, inst.download))
+    # run_in_executor already schedules the work and returns a Future, not a
+    # coroutine; wrapping it in create_task raises TypeError.
+    loop.run_in_executor(None, inst.download)
 
     return {"task_id": task_id}
 
@@ -362,20 +421,20 @@ async def start_playlist_download(req: PlaylistDownloadRequest, request: Request
     task_times[task_id] = time.time()
     task_owners[task_id] = client_id
 
-    root = Path(get_settings().output_dir).expanduser().resolve()
-    output = str((root / (req.output_dir or "")).resolve())
+    output = _resolve_output_dir(req.output_dir)
     safe_playlist_name = _sanitize_playlist_name(req.playlist_name)
     final_output = resolve_output_dir(output, safe_playlist_name)
+
+    downloads[task_id]["output_dir"] = final_output
 
     async def batch_download() -> None:
         for idx, url in enumerate(req.selected_urls):
             if downloads.get(task_id, {}).get("status") == "cancelled":
-                downloads[task_id]["status"] = "cancelled"
                 downloads[task_id]["message"] = "Cancelled by user"
                 return
 
             downloads[task_id]["items_done"] = idx
-            downloads[task_id]["message"] = f"Downloading item {idx + 1}/{total_items}…"
+            downloads[task_id]["message"] = f"Downloading item {idx + 1}/{total_items}\u2026"
 
             try:
                 platform = detect_platform(url)
@@ -390,11 +449,21 @@ async def start_playlist_download(req: PlaylistDownloadRequest, request: Request
                         url=url, fmt=req.fmt, quality=req.quality,
                         output_dir=final_output,
                         task_id=task_id, downloads=downloads,
-                        playlist_items=[],
                     )
+
+                # Publish the active child so cancel/pause reach this item.
+                instances[task_id] = dl
 
                 loop = asyncio.get_running_loop()
                 await loop.run_in_executor(None, dl.download)
+
+                if dl._status == "cancelled" or downloads.get(task_id, {}).get("status") == "cancelled":
+                    downloads[task_id]["status"] = "cancelled"
+                    downloads[task_id]["message"] = "Cancelled by user"
+                    return
+                if dl._status == "error":
+                    downloads[task_id]["status"] = "error"
+                    return
 
             except Exception as e:
                 downloads[task_id]["status"] = "error"
@@ -407,7 +476,6 @@ async def start_playlist_download(req: PlaylistDownloadRequest, request: Request
         downloads[task_id]["message"] = "All items downloaded!"
         downloads[task_id]["output_dir"] = final_output
 
-    loop = asyncio.get_running_loop()
     asyncio.create_task(batch_download())
 
     return {"task_id": task_id}
@@ -416,7 +484,10 @@ async def start_playlist_download(req: PlaylistDownloadRequest, request: Request
 @app.get("/download/progress/{task_id}")
 async def get_progress(task_id: str, request: Request, _=Depends(verify_api_key)):
     _verify_task_ownership(task_id, request)
-    return downloads[task_id]
+    progress = downloads.get(task_id)
+    if progress is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return progress
 
 
 @app.get("/download/list")
@@ -434,11 +505,14 @@ async def list_downloads(request: Request, _=Depends(verify_api_key)):
 @app.post("/download/cancel/{task_id}")
 async def cancel_download(task_id: str, request: Request, _=Depends(verify_api_key)):
     _verify_task_ownership(task_id, request)
-    if task_id not in instances:
+    if task_id not in downloads:
         raise HTTPException(status_code=404, detail="Task not found")
     downloads[task_id]["status"] = "cancelled"
     downloads[task_id]["message"] = "Cancelled by user"
-    instances[task_id].cancel()
+    # A playlist batch between items has no live instance; the flag above stops it.
+    inst = instances.get(task_id)
+    if inst is not None:
+        inst.cancel()
     return {"status": "cancelled"}
 
 
@@ -475,14 +549,20 @@ async def retry_download(task_id: str, background_tasks: BackgroundTasks, reques
         raise HTTPException(status_code=404, detail="Task not found")
 
     inst = instances[task_id]
-    if inst._status in ("cancelled", "error", "complete"):
-        downloads[task_id]["status"] = "pending"
-        downloads[task_id]["progress"] = 0
-        loop = asyncio.get_running_loop()
-        asyncio.create_task(loop.run_in_executor(None, inst.download))
-        return {"status": "retrying"}
+    if downloads.get(task_id, {}).get("status") not in TERMINAL_STATES:
+        raise HTTPException(status_code=400, detail="Terminal state required for retry")
 
-    raise HTTPException(status_code=400, detail="Terminal state required for retry")
+    inst._cancelled = False
+    inst._status = "pending"
+    downloads[task_id]["status"] = "pending"
+    downloads[task_id]["progress"] = 0
+    downloads[task_id]["message"] = "Queued"
+    task_times[task_id] = time.time()
+    loop = asyncio.get_running_loop()
+    # run_in_executor already schedules the work and returns a Future, not a
+    # coroutine; wrapping it in create_task raises TypeError.
+    loop.run_in_executor(None, inst.download)
+    return {"status": "retrying"}
 
 
 @app.delete("/download/{task_id}")
@@ -518,7 +598,7 @@ async def clear_history(request: Request, _=Depends(verify_api_key)):
     client_id = _get_client_identifier(request)
     to_del = [
         tid for tid, data in downloads.items()
-        if data["status"] in ("complete", "error", "cancelled") and task_owners.get(tid) == client_id
+        if data.get("status") in TERMINAL_STATES and task_owners.get(tid) == client_id
     ]
     for tid in to_del:
         downloads.pop(tid, None)
@@ -534,18 +614,39 @@ async def clean_task(task_id: str, request: Request, _=Depends(verify_api_key)):
 
 
 @app.websocket("/ws/{task_id}")
-async def ws_progress(ws: WebSocket, task_id: str):
+async def ws_progress(ws: WebSocket, task_id: str, api_key: str = "", client_id: str = ""):
+    """
+    Stream progress for one task.
+
+    The websocket handshake carries no headers we control from React Native, so
+    the API key and client id arrive as query parameters instead.
+    """
+    if not _api_key_valid(api_key or None):
+        await ws.close(code=1008)
+        return
+
+    owner = task_owners.get(task_id)
+    if owner is None:
+        await ws.close(code=1008)
+        return
+    if client_id and owner != client_id:
+        await ws.close(code=1008)
+        return
+
     await ws.accept()
     try:
         while True:
-            if task_id in downloads:
-                data = downloads[task_id]
-                await ws.send_json(data)
-                if data["status"] in ("complete", "error", "cancelled"):
-                    break
+            data = downloads.get(task_id)
+            if data is None:
+                break
+            await ws.send_json(data)
+            if data.get("status") in TERMINAL_STATES:
+                break
             await asyncio.sleep(0.25)
     except WebSocketDisconnect:
         pass
+    except Exception as exc:
+        logger.debug(f"websocket for {task_id} closed: {exc}")
     finally:
         try:
             await ws.close()

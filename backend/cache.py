@@ -13,12 +13,12 @@ class SimpleCache:
         with self._lock:
             if key not in self._cache:
                 return None
-            
+
             item = self._cache[key]
             if time.time() > item["expiry"]:
                 del self._cache[key]
                 return None
-            
+
             return item["value"]
 
     def set(self, key: str, value: Any, ttl: Optional[int] = None):

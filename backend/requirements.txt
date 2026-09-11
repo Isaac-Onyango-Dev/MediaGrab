@@ -2,14 +2,16 @@
 # Install: pip install -r requirements.txt
 # Run:     uvicorn main:app --host 0.0.0.0 --port 8000
 
-fastapi==0.111.0
-uvicorn[standard]==0.30.1
-yt-dlp
+# Lower bounds rather than exact pins: hard pins (fastapi==0.111.0,
+# zeroconf==0.132.2) have no wheels for newer Python releases and abort the
+# whole install.
+fastapi>=0.111,<1.0
+uvicorn[standard]>=0.30
+yt-dlp>=2024.0.0
 requests>=2.31.0
 pydantic>=2.0.0
 pydantic-settings>=2.2.0
 python-multipart>=0.0.9
 slowapi>=0.1.9
-zeroconf==0.132.2
+zeroconf>=0.132
 psutil>=5.9.8
-respx

@@ -55,11 +55,11 @@ class UIManager:
         ctk.CTkLabel(bar, text=f"  {APP_NAME}", font=ctk.CTkFont(size=22, weight="bold")).pack(side="left", padx=20)
         ctk.CTkLabel(bar, text="Universal Video Downloader", font=ctk.CTkFont(size=12), text_color="gray").pack(side="left", padx=4)
         
-        ctk.CTkButton(bar, text="ð", width=32, height=32, corner_radius=16, 
+        ctk.CTkButton(bar, text="🔄", width=32, height=32, corner_radius=16, 
                      fg_color="transparent", hover_color=("gray80", "gray25"), 
                      command=on_update_check).pack(side="right", padx=6)
         
-        ctk.CTkButton(bar, text="â", width=32, height=32, corner_radius=16, 
+        ctk.CTkButton(bar, text="ℹ", width=32, height=32, corner_radius=16, 
                      fg_color="transparent", hover_color=("gray80", "gray25"), 
                      command=on_show_about).pack(side="right", padx=10)
         
@@ -87,12 +87,12 @@ class UIManager:
         sec.pack(fill="x", pady=(0, 10))
         row = sec.body()
         
-        self.url_entry = ctk.CTkEntry(row, placeholder_text="Paste any video or playlist URLâ¦", 
+        self.url_entry = ctk.CTkEntry(row, placeholder_text="Paste any video or playlist URL…", 
                                    height=44, font=ctk.CTkFont(size=13))
         self.url_entry.pack(side="left", fill="x", expand=True, padx=(0, 8))
         self.url_entry.bind("<Return>", lambda _: on_analyze())
         
-        ctk.CTkButton(row, text="ð", width=44, height=44, corner_radius=8, 
+        ctk.CTkButton(row, text="📋", width=44, height=44, corner_radius=8, 
                      command=on_paste).pack(side="left", padx=(0, 8))
         
         self.analyze_btn = ctk.CTkButton(row, text="Analyze", width=100, height=44, 
@@ -158,7 +158,7 @@ class UIManager:
                                     text_color="gray", anchor="w")
         self.dir_label.pack(side="left", fill="x", expand=True, padx=(0, 12))
         
-        ctk.CTkButton(body, text="Browseâ¦", width=90, height=34, command=on_browse).pack(side="left")
+        ctk.CTkButton(body, text="Browse…", width=90, height=34, command=on_browse).pack(side="left")
         ctk.CTkButton(body, text="Open", width=70, height=34, fg_color="transparent", 
                      border_width=1, command=lambda: on_open_folder(output_dir)).pack(side="left", padx=(8, 0))
         

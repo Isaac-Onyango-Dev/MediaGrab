@@ -43,6 +43,17 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 *(You may want to copy `.env.example` to `.env` to customize settings)*
 
+**Run the tests:**
+```bash
+cd backend
+pip install -r requirements.txt -r requirements-dev.txt
+pytest tests -q
+```
+
+> **Security note:** with no `MEDIAGRAB_API_KEY` set, the server is open to every
+> device on the network. Set one before exposing it beyond a trusted LAN; the
+> mobile app takes the same key in Settings.
+
 **Run via Docker:**
 ```bash
 cd backend

@@ -19,32 +19,31 @@ class CleanupManager:
         import platform
         system = platform.system()
         
+        # These must match where the app actually writes: main.py keeps config
+        # and history as dotfiles in the home directory, and shared/logger.py
+        # writes under ~/.mediagrab/logs. The platform-specific app-data folders
+        # below are legacy locations, cleaned up too when they exist.
         paths = {
             "downloads": str(Path.home() / "Downloads" / "MediaGrab"),
-            "config": None,
-            "history": None,
-            "cache": None,
-            "logs": None,
+            "config": str(Path.home() / ".mediagrab_config.json"),
+            "history": str(Path.home() / ".mediagrab_history.json"),
+            "cache": str(Path.home() / ".mediagrab" / "cache"),
+            "logs": str(Path.home() / ".mediagrab" / "logs"),
         }
-        
+
         if system == "Windows":
             app_data = os.environ.get("LOCALAPPDATA", str(Path.home() / "AppData" / "Local"))
-            paths["config"] = str(Path(app_data) / "MediaGrab" / "config.json")
-            paths["history"] = str(Path(app_data) / "MediaGrab" / "history.json")
-            paths["cache"] = str(Path(app_data) / "MediaGrab" / "cache")
-            paths["logs"] = str(Path(app_data) / "MediaGrab" / "logs")
+            legacy_root = Path(app_data) / "MediaGrab"
         elif system == "Darwin":
-            app_support = str(Path.home() / "Library" / "Application Support" / "MediaGrab")
-            paths["config"] = str(Path(app_support) / "config.json")
-            paths["history"] = str(Path(app_support) / "history.json")
-            paths["cache"] = str(Path(app_support) / "cache")
-            paths["logs"] = str(Path(app_support) / "logs")
+            legacy_root = Path.home() / "Library" / "Application Support" / "MediaGrab"
         else:
-            paths["config"] = str(Path.home() / ".config" / "MediaGrab" / "config.json")
-            paths["history"] = str(Path.home() / ".local" / "share" / "MediaGrab" / "history.json")
-            paths["cache"] = str(Path.home() / ".cache" / "MediaGrab")
-            paths["logs"] = str(Path.home() / ".local" / "share" / "MediaGrab" / "logs")
-        
+            legacy_root = Path.home() / ".local" / "share" / "MediaGrab"
+
+        paths["legacy_config"] = str(legacy_root / "config.json")
+        paths["legacy_history"] = str(legacy_root / "history.json")
+        paths["legacy_cache"] = str(legacy_root / "cache")
+        paths["legacy_logs"] = str(legacy_root / "logs")
+
         return paths
     
     @staticmethod
@@ -88,8 +87,9 @@ class CleanupManager:
             "skipped": []
         }
         
-        # Remove config, history, cache, logs
-        for name in ["config", "history", "cache", "logs"]:
+        # Remove config, history, cache, logs (current and legacy locations)
+        for name in ["config", "history", "cache", "logs",
+                     "legacy_config", "legacy_history", "legacy_cache", "legacy_logs"]:
             path = paths.get(name)
             if not path:
                 continue
