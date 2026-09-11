@@ -15,6 +15,12 @@ permissions:
   contents: write
   packages: write
 
+# One release build per tag. Never cancel a run that may already have
+# published assets.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build-windows:
     name: Build Windows Installer
@@ -70,11 +76,35 @@ jobs:
         working-directory: desktop
         shell: pwsh
 
+      - name: Build standalone server
+        working-directory: backend
+        shell: bash
+        run: |
+          pip install -r requirements.txt
+          pyinstaller --noconfirm --onefile \
+            --name "MediaGrab-Server-Windows" \
+            --add-data "../shared;shared" \
+            --add-data "../VERSION;." \
+            --collect-all "yt_dlp" \
+            --hidden-import "uvicorn.logging" \
+            --hidden-import "uvicorn.loops" \
+            --hidden-import "uvicorn.loops.auto" \
+            --hidden-import "uvicorn.protocols" \
+            --hidden-import "uvicorn.protocols.http" \
+            --hidden-import "uvicorn.protocols.http.auto" \
+            --hidden-import "uvicorn.protocols.websockets" \
+            --hidden-import "uvicorn.protocols.websockets.auto" \
+            --hidden-import "uvicorn.lifespan" \
+            --hidden-import "uvicorn.lifespan.on" \
+            main.py
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: MediaGrab-Windows
-          path: desktop/dist/MediaGrab-*-Setup.exe
+          path: |
+            desktop/dist/MediaGrab-*-Setup.exe
+            backend/dist/MediaGrab-Server-Windows.exe
 
   build-macos:
     name: Build macOS
@@ -111,11 +141,34 @@ jobs:
             done
           fi
 
+      - name: Build standalone server
+        working-directory: backend
+        run: |
+          pip install -r requirements.txt
+          pyinstaller --noconfirm --onefile \
+            --name "MediaGrab-Server-macOS" \
+            --add-data "../shared:shared" \
+            --add-data "../VERSION:." \
+            --collect-all "yt_dlp" \
+            --hidden-import "uvicorn.logging" \
+            --hidden-import "uvicorn.loops" \
+            --hidden-import "uvicorn.loops.auto" \
+            --hidden-import "uvicorn.protocols" \
+            --hidden-import "uvicorn.protocols.http" \
+            --hidden-import "uvicorn.protocols.http.auto" \
+            --hidden-import "uvicorn.protocols.websockets" \
+            --hidden-import "uvicorn.protocols.websockets.auto" \
+            --hidden-import "uvicorn.lifespan" \
+            --hidden-import "uvicorn.lifespan.on" \
+            main.py
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: MediaGrab-macOS
-          path: desktop/dist/MediaGrab-macOS.dmg
+          path: |
+            desktop/dist/MediaGrab-macOS.dmg
+            backend/dist/MediaGrab-Server-macOS
 
   build-linux:
     name: Build Linux
@@ -175,7 +228,11 @@ jobs:
           fi
           chmod +x AppDir/usr/bin/MediaGrab
           export ARCH=x86_64
-          VERSION="${{ github.ref_type == 'tag' && github.ref_name || '1.0.0' }}"
+          # ref_name is "v1.1.0"; every other asset uses the bare version, so
+          # strip the prefix or the AppImage link 404s.
+          VERSION="${{ github.ref_type == 'tag' && github.ref_name || '' }}"
+          VERSION="${VERSION#v}"
+          if [ -z "$VERSION" ]; then VERSION="$(tr -d '[:space:]' < $GITHUB_WORKSPACE/VERSION)"; fi
           $GITHUB_WORKSPACE/appimagetool AppDir "dist/MediaGrab-${VERSION}-x86_64.AppImage"
 
       - name: Upload AppImage artifact
@@ -184,11 +241,19 @@ jobs:
           name: MediaGrab-Linux-AppImage
           path: desktop/dist/MediaGrab-*-x86_64.AppImage
 
+      - name: Build standalone server
+        working-directory: backend
+        run: |
+          pip install -r requirements.txt
+          pyinstaller --noconfirm --onefile             --name "MediaGrab-Server-Linux"             --add-data "../shared:shared"             --add-data "../VERSION:."             --collect-all "yt_dlp"             --hidden-import "uvicorn.logging"             --hidden-import "uvicorn.loops"             --hidden-import "uvicorn.loops.auto"             --hidden-import "uvicorn.protocols"             --hidden-import "uvicorn.protocols.http"             --hidden-import "uvicorn.protocols.http.auto"             --hidden-import "uvicorn.protocols.websockets"             --hidden-import "uvicorn.protocols.websockets.auto"             --hidden-import "uvicorn.lifespan"             --hidden-import "uvicorn.lifespan.on"             main.py
+
       - name: Upload tar.gz artifact
         uses: actions/upload-artifact@v4
         with:
           name: MediaGrab-Linux-tarball
-          path: desktop/dist/MediaGrab-linux-x86_64.tar.gz
+          path: |
+            desktop/dist/MediaGrab-linux-x86_64.tar.gz
+            backend/dist/MediaGrab-Server-Linux
 
   build-android:
     name: Build Android APK
@@ -336,6 +401,20 @@ jobs:
             echo "⚠ Linux tar.gz NOT found"
           fi
           
+          # Standalone servers (for running the mobile app's backend
+          # without a Python install)
+          for server in \
+            "artifacts/MediaGrab-Windows/MediaGrab-Server-Windows.exe" \
+            "artifacts/MediaGrab-macOS/MediaGrab-Server-macOS" \
+            "artifacts/MediaGrab-Linux-tarball/MediaGrab-Server-Linux"; do
+            if [ -f "$server" ]; then
+              cp "$server" release_assets/
+              echo "✓ $(basename "$server") found"
+            else
+              echo "⚠ $(basename "$server") NOT found"
+            fi
+          done
+
           # Android
           if [ -f "artifacts/MediaGrab-Android/MediaGrab-Android.apk" ]; then
             cp artifacts/MediaGrab-Android/MediaGrab-Android.apk release_assets/
@@ -410,5 +489,7 @@ jobs:
             release_assets/*.AppImage
             release_assets/*.tar.gz
             release_assets/*.apk
+            release_assets/MediaGrab-Server-macOS
+            release_assets/MediaGrab-Server-Linux
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

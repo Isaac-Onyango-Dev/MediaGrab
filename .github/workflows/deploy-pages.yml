@@ -5,6 +5,9 @@ on:
     branches: [main]
     paths:
       - 'website/**'
+      # The site builds its download links from VERSION, so a bump has to
+      # trigger a redeploy even when nothing under website/ changed.
+      - 'VERSION'
       - '.github/workflows/deploy-pages.yml'
   
   workflow_dispatch:

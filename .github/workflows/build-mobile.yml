@@ -1,8 +1,8 @@
 name: Build Android APK
 
+# Manual, artifact-only APK builds. release.yml publishes the APK that ships
+# with a release; this workflow exists for debug builds and one-off checks.
 on:
-  push:
-    tags: ["v*"]
   workflow_dispatch:
     inputs:
       build_type:
@@ -13,7 +13,11 @@ on:
         options: [debug, release]
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: build-mobile-${{ github.ref }}
+  cancel-in-progress: true
 
 # ─────────────────────────────────────────────────────────────────────
 # Android only — completely free, no EAS, no Apple account needed.
@@ -107,9 +111,3 @@ jobs:
           path: mobile/dist/MediaGrab-Android.apk
           retention-days: 30
 
-      # 12 — Attach to GitHub Release (only on tag push)
-      - name: Attach to Release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: mobile/dist/MediaGrab-Android.apk

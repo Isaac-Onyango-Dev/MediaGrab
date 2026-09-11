@@ -1,12 +1,18 @@
 name: Build Desktop Apps
 
+# Manual, artifact-only builds for testing a change without cutting a release.
+# release.yml is the only workflow that publishes to a GitHub Release; running
+# this one on tags too meant three workflows racing to attach assets to the
+# same tag, with conflicting file names.
 on:
-  push:
-    tags: ["v*"]
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: build-desktop-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   # ──────────────────────────────────────────────
@@ -53,6 +59,8 @@ jobs:
             --onefile `
             --name "MediaGrab-Server-Windows" `
             --add-data "../shared;shared" `
+            --add-data "../VERSION;." `
+            --collect-all "yt_dlp" `
             --hidden-import "uvicorn.logging" `
             --hidden-import "uvicorn.loops" `
             --hidden-import "uvicorn.loops.auto" `
@@ -77,13 +85,6 @@ jobs:
             desktop/dist/MediaGrab-Windows.exe
             backend/dist/MediaGrab-Server-Windows.exe
 
-      - name: Attach to GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            desktop/dist/MediaGrab-Windows.exe
-            backend/dist/MediaGrab-Server-Windows.exe
 
   # ──────────────────────────────────────────────
   # macOS – produces MediaGrab-macOS.dmg
@@ -136,6 +137,9 @@ jobs:
             --noconfirm \
             --onefile \
             --name "MediaGrab-Server-macOS" \
+            --add-data "../shared:shared" \
+            --add-data "../VERSION:." \
+            --collect-all "yt_dlp" \
             --hidden-import "uvicorn.logging" \
             --hidden-import "uvicorn.loops" \
             --hidden-import "uvicorn.loops.auto" \
@@ -167,13 +171,6 @@ jobs:
             desktop/dist/MediaGrab-macOS.dmg
             backend/dist/MediaGrab-Server-macOS
 
-      - name: Attach to GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            desktop/dist/MediaGrab-macOS.dmg
-            backend/dist/MediaGrab-Server-macOS
 
   # ──────────────────────────────────────────────
   # Linux – produces MediaGrab-Linux (Binary)
@@ -226,6 +223,9 @@ jobs:
             --noconfirm \
             --onefile \
             --name "MediaGrab-Server-Linux" \
+            --add-data "../shared:shared" \
+            --add-data "../VERSION:." \
+            --collect-all "yt_dlp" \
             --hidden-import "uvicorn.logging" \
             --hidden-import "uvicorn.loops" \
             --hidden-import "uvicorn.loops.auto" \
@@ -250,10 +250,3 @@ jobs:
             desktop/dist/MediaGrab-Linux
             backend/dist/MediaGrab-Server-Linux
 
-      - name: Attach to GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            desktop/dist/MediaGrab-Linux
-            backend/dist/MediaGrab-Server-Linux
