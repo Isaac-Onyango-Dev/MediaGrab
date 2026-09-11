@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.1.1
+
+Release engineering fix. Contains everything in 1.1.0; use this release rather
+than that one, whose published assets are inconsistent (see below).
+
+- **One tag started three workflows.** `release.yml`, `build-desktop.yml` and
+  `build-mobile.yml` all triggered on `v*` tags, and each attached files to the
+  same release. They raced to create it and published conflicting sets:
+  `MediaGrab-Windows.exe`, `MediaGrab-macOS.dmg` and `MediaGrab-Linux` from one,
+  the Inno installer, AppImage and tarball from another. Same-named assets
+  overwrote each other and the release description depended on which job won.
+  `release.yml` is now the only publisher; the other two are manual,
+  artifact-only builds.
+- **The Linux AppImage could never be downloaded from the website.** It was
+  named from the tag (`MediaGrab-v1.1.0-x86_64.AppImage`) while every other
+  asset, and every link, uses the bare version. The prefix is now stripped.
+- **The macOS and Linux server binaries could not start.** Neither bundled the
+  `shared` package the backend imports, and neither collected yt-dlp's
+  extractors. Both are fixed, and the server binaries are now built and
+  published by the release workflow.
+- CI cancels superseded runs instead of stacking them, and the website
+  redeploys when `VERSION` changes, since it builds download links from it.
+
 ## 1.1.0
 
 Audit and repair release. Every item below is a defect found in 1.0.0.

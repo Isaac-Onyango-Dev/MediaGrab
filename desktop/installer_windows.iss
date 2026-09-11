@@ -12,7 +12,7 @@
 
 #define MyAppName "MediaGrab"
 #ifndef MyAppVersion
-#define MyAppVersion "1.1.0"
+#define MyAppVersion "1.1.1"
 #endif
 #define MyAppPublisher "Isaac Onyango"
 #define MyAppURL "https://github.com/Isaac-Onyango-Dev/MediaGrab"

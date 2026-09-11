@@ -52,7 +52,7 @@ APP_NAME = "MediaGrab"
 # Version: Try VERSION file first, then fallback to hardcoded version
 # This ensures it works both in development AND in PyInstaller builds
 VERSION_FILE = Path(__file__).parent.parent / "VERSION"
-_hc_version = "1.1.0"  # Hardcoded fallback for PyInstaller builds
+_hc_version = "1.1.1"  # Hardcoded fallback for PyInstaller builds
 try:
     APP_VERSION = VERSION_FILE.read_text().strip() if VERSION_FILE.exists() else _hc_version
 except Exception as e:
