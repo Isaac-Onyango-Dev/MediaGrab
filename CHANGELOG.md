@@ -1,5 +1,32 @@
 # Changelog
 
+## Unreleased
+
+### Website
+
+The site deploys on its own, so these changes are already live and will be
+listed under the next version when it is tagged.
+
+- **Redesigned around a playable claw machine.** Paste a link, press Grab, and
+  the claw picks up that site's capsule, drops it down the chute and prints a
+  ticket for the file. It is clearly labelled as a demo and downloads nothing.
+- New identity for the site: a cobalt page with white text, ink outlines, and
+  pink and yellow accents, set in Bagel Fat One and Schibsted Grotesk. It no
+  longer shares the dark gradient look of the sibling projects.
+- **New "Your phone is the joystick" section** explaining how the Android app
+  drives MediaGrab Server over Wi-Fi, with links to the standalone server
+  downloads for Windows, macOS and Linux.
+- Downloads are one list instead of four cards, with the visitor's own system
+  highlighted and the main button pointed at it.
+- The version, release date and lifetime download count are read live from
+  GitHub, falling back to the built-in version when GitHub can't be reached.
+- The donation dialog closes when you click outside it, is announced to screen
+  readers as a dialog, and says so when no donation links are configured.
+- Added a skip-to-content link, visible keyboard focus, and support for
+  reduced motion.
+- Fixed brand colours that never applied: they were declared where Tailwind
+  doesn't read them, so classes such as `bg-brand-electric` produced nothing.
+
 ## 1.1.1
 
 Release engineering fix. Contains everything in 1.1.0; use this release rather
