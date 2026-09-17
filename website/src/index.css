@@ -1,112 +1,90 @@
 @import "tailwindcss";
 
-:root {
-  --font-sans: "Geist", "Inter", system-ui, sans-serif;
-  --color-brand-950: #030712;
-  --color-brand-900: #07090f;
-  --color-brand-800: #111827;
-  --color-brand-violet: #4c1d95;
-  --color-brand-electric: #3b82f6;
-  --color-brand-vivid: #8b5cf6;
+/* Arcade cabinet palette. Tokens live in @theme so Tailwind generates
+   bg-cobalt, text-ink, etc. The old :root variables never did. */
+@theme {
+  --color-cobalt: #2342f2;
+  --color-cobalt-deep: #1628a8;
+  --color-cobalt-night: #0f1d7a;
+  --color-glass: #f5f7ff;
+  --color-ink: #0c1238;
+  --color-ink-soft: #3b4270;
+  --color-capsule: #ff5fa8;
+  --color-prize: #ffd447;
+  --color-violet: #8b5cf6;
 
-  --bg: #0d0d0d;
-  --surface: #141414;
-  --card: #1a1a1a;
-  --border: #1e293b;
-  --border-2: #2a2a2a;
-  --text: #f1f5f9;
-  --text-muted: #64748b;
-  --text-dim: #334155;
-  --blue: #3b82f6;
-  --blue-dark: #1d4ed8;
-  --green: #22c55e;
-  --radius: 10px;
-  --radius-sm: 6px;
+  --font-display: "Bagel Fat One", "Arial Rounded MT Bold", system-ui, sans-serif;
+  --font-sans: "Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
-
-@keyframes drift {
-  0% { transform: translate(0, 0) scale(1); }
-  100% { transform: translate(5%, 10%) scale(1.1); }
-}
-
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
 
 @layer base {
+  html {
+    color-scheme: light;
+    scroll-behavior: smooth;
+  }
+
   body {
-    background-color: var(--color-brand-950);
-    color: #f1f5f9;
     margin: 0;
+    background-color: var(--color-cobalt);
+    color: #fff;
     font-family: var(--font-sans);
+    font-size: 1.0625rem;
+    line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
   ::selection {
-    background-color: rgba(59, 130, 246, 0.3);
+    background-color: var(--color-prize);
+    color: var(--color-ink);
   }
 
   a {
-    color: var(--blue);
+    color: inherit;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-prize);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+}
+
+@layer components {
+  /* Chunky arcade button: flat colour, hard ink shadow that presses in. */
+  .arcade-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 14px;
+    border: 2px solid var(--color-ink);
+    box-shadow: 0 5px 0 var(--color-ink);
+    font-weight: 700;
     text-decoration: none;
+    transition: transform 80ms ease, box-shadow 80ms ease;
   }
 
-  a:hover {
-    text-decoration: underline;
+  .arcade-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 0 var(--color-ink);
   }
 
-  section {
-    padding: 72px 24px;
-  }
-}
-
-::-webkit-scrollbar {
-  width: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--bg);
-}
-
-::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 3px;
-}
-
-@layer utilities {
-  .glass-card {
-    background-color: rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(64px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  .arcade-btn:active {
+    transform: translateY(4px);
+    box-shadow: 0 1px 0 var(--color-ink);
   }
 
-  .glass-card-hover {
-    transition: all 500ms;
-    cursor: pointer;
-  }
-
-  .glass-card-hover:hover {
-    background-color: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-  }
-
-  .text-glow {
-    text-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
-  }
-
-  .bg-gradient-premium {
-    background: linear-gradient(to bottom, #030712 0%, #4c1d95 100%);
-  }
-
-  .blur-orb {
-    position: absolute;
-    border-radius: 9999px;
-    filter: blur(120px);
-    opacity: 0.4;
-    pointer-events: none;
+  .display {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    line-height: 0.95;
   }
 }

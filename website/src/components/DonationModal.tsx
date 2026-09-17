@@ -16,27 +16,28 @@ const DonationModal: React.FC<DonationModalProps> = ({ isOpen, onClose }) => {
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-brand-950/80 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/70 p-4" onClick={onClose}>
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="glass-card p-6 md:p-8 rounded-3xl max-w-md w-full border-brand-electric/30"
+            role="dialog" aria-modal="true" aria-labelledby="donate-title" onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md rounded-[28px] border-2 border-ink bg-glass p-6 text-ink shadow-[0_10px_0_var(--color-ink)] md:p-8"
           >
             <div className="flex justify-between items-center mb-6">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-brand-electric/20 flex items-center justify-center border border-brand-electric/30">
-                  <Heart className="text-brand-electric" size={20} />
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl border-2 border-ink bg-capsule">
+                  <Heart size={20} />
                 </div>
-                <h3 className="text-xl font-black text-white">Support MediaGrab</h3>
+                <h3 id="donate-title" className="display text-2xl">Support MediaGrab</h3>
               </div>
-              <button onClick={onClose} className="text-white/60 hover:text-white" aria-label="Close">
+              <button onClick={onClose} className="rounded-lg p-1 text-ink-soft hover:text-ink" aria-label="Close">
                 <X size={24} />
               </button>
             </div>
 
-            <p className="text-white/70 text-sm mb-6">
-              Help keep MediaGrab free forever. Your support covers server costs and keeps development going.
+            <p className="mb-6 text-ink-soft">
+              MediaGrab stays free and ad-free. Pick whichever way of chipping in suits you.
             </p>
 
             {/* Donation Options */}
@@ -47,7 +48,7 @@ const DonationModal: React.FC<DonationModalProps> = ({ isOpen, onClose }) => {
                   href={kofiUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full py-4 rounded-xl bg-[#FF5E5B] text-white font-black text-lg hover:bg-[#FF5E5B]/80 transition-all flex items-center justify-center gap-3"
+                  className="arcade-btn w-full bg-[#FF5E5B] py-3.5 text-lg text-white"
                 >
                   <Coffee size={24} />
                   Buy me a coffee on Ko-fi
@@ -61,7 +62,7 @@ const DonationModal: React.FC<DonationModalProps> = ({ isOpen, onClose }) => {
                   href={githubSponsorsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full py-4 rounded-xl bg-slate-800 text-white font-black text-lg hover:bg-slate-700 transition-all flex items-center justify-center gap-3 border border-slate-700"
+                  className="arcade-btn w-full bg-ink py-3.5 text-lg text-white"
                 >
                   <SiGithub size={24} />
                   Sponsor on GitHub
@@ -75,7 +76,7 @@ const DonationModal: React.FC<DonationModalProps> = ({ isOpen, onClose }) => {
                   href={openCollectiveUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full py-4 rounded-xl bg-[#0F6D47] text-white font-black text-lg hover:bg-[#0F6D47]/80 transition-all flex items-center justify-center gap-3"
+                  className="arcade-btn w-full bg-[#0F6D47] py-3.5 text-lg text-white"
                 >
                   <SiOpencollective size={24} />
                   Contribute on Open Collective
@@ -85,9 +86,11 @@ const DonationModal: React.FC<DonationModalProps> = ({ isOpen, onClose }) => {
             </div>
 
             {/* Thank You Message */}
-            <div className="text-center p-4 rounded-xl bg-brand-electric/10 border border-brand-electric/20">
-              <p className="text-white/80 text-sm">
-                Thank you for supporting MediaGrab!
+            <div className="rounded-xl bg-prize p-4 text-center">
+              <p className="text-sm font-semibold">
+                {kofiUrl || githubSponsorsUrl || openCollectiveUrl
+                  ? 'Thank you for keeping MediaGrab going.'
+                  : 'Donation links aren’t set up yet. Starring the repo on GitHub helps too.'}
               </p>
             </div>
           </motion.div>
